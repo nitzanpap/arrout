@@ -1,11 +1,16 @@
 import { Tabs } from 'expo-router'
 import { Text } from 'react-native'
+import { useThemeColors } from '../../src/theme/colors'
 
-const SURFACE = '#161929'
-const ACCENT = '#5B5FEF'
-const TEXT_SECONDARY = '#6C7099'
-
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
+function TabIcon({
+  label,
+  focused,
+  colors,
+}: {
+  label: string
+  focused: boolean
+  colors: { accent: string; textSecondary: string }
+}) {
   const icons: Record<string, string> = {
     Home: '\u25B6',
     Challenge: '\u2605',
@@ -13,24 +18,26 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
     Settings: '\u2699',
   }
   return (
-    <Text style={{ fontSize: 20, color: focused ? ACCENT : TEXT_SECONDARY }}>
+    <Text style={{ fontSize: 20, color: focused ? colors.accent : colors.textSecondary }}>
       {icons[label] ?? '\u25CF'}
     </Text>
   )
 }
 
 export default function TabLayout() {
+  const colors = useThemeColors()
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: SURFACE,
-          borderTopColor: 'rgba(200, 206, 255, 0.08)',
+          backgroundColor: colors.headerBand,
+          borderTopColor: colors.gridLine,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: ACCENT,
-        tabBarInactiveTintColor: TEXT_SECONDARY,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -41,28 +48,34 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} colors={colors} />,
         }}
       />
       <Tabs.Screen
         name="challenge"
         options={{
           title: 'Challenge',
-          tabBarIcon: ({ focused }) => <TabIcon label="Challenge" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Challenge" focused={focused} colors={colors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="collection"
         options={{
           title: 'Collection',
-          tabBarIcon: ({ focused }) => <TabIcon label="Collection" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Collection" focused={focused} colors={colors} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ focused }) => <TabIcon label="Settings" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon label="Settings" focused={focused} colors={colors} />
+          ),
         }}
       />
     </Tabs>

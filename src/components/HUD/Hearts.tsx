@@ -1,20 +1,19 @@
 import { StyleSheet, Text, View } from 'react-native'
+import type { ThemeColors } from '../../theme/colors'
 
 interface HeartsProps {
   readonly remaining: number
   readonly total?: number
+  readonly colors: ThemeColors
 }
 
-const DANGER_COLOR = '#FF4A6A'
-const EMPTY_COLOR = '#2A2D42'
-
-export function Hearts({ remaining, total = 3 }: HeartsProps) {
+export function Hearts({ remaining, total = 3, colors }: HeartsProps) {
   return (
     <View style={styles.container}>
       {Array.from({ length: total }, (_, i) => (
         <Text
           key={`heart-${i}`}
-          style={[styles.heart, { color: i < remaining ? DANGER_COLOR : EMPTY_COLOR }]}
+          style={[styles.heart, { color: i < remaining ? colors.heartFilled : colors.heartEmpty }]}
         >
           {i < remaining ? '\u2665' : '\u2661'}
         </Text>

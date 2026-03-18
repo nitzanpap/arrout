@@ -1,6 +1,8 @@
 import { Group, Path, Skia } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
+import { type SharedValue, useDerivedValue } from 'react-native-reanimated'
 import type { Arrow } from '../../engine/types'
+import type { ThemeColors } from '../../theme/colors'
 
 interface ArrowPathProps {
   readonly arrow: Arrow
@@ -9,11 +11,16 @@ interface ArrowPathProps {
   readonly offsetY: number
   readonly isSelected: boolean
   readonly isError: boolean
+  readonly colors: ThemeColors
+  readonly isAnimating?: boolean
+  readonly animTranslateX?: SharedValue<number>
+  readonly animTranslateY?: SharedValue<number>
 }
 
 const SELECTED_GLOW_ALPHA = 0.4
-const STROKE_WIDTH_RATIO = 0.35
-const ERROR_COLOR = '#FF4A6A'
+const STROKE_WIDTH_RATIO = 0.06
+const MIN_STROKE_WIDTH = 2
+const HEAD_SIZE_RATIO = 0.15
 
 export function ArrowPath({
   arrow,
@@ -22,16 +29,19 @@ export function ArrowPath({
   offsetY,
   isSelected,
   isError,
+  colors,
+  isAnimating = false,
+  animTranslateX,
+  animTranslateY,
 }: ArrowPathProps) {
-  const strokeWidth = cellSize * STROKE_WIDTH_RATIO
-  const color = isError ? ERROR_COLOR : arrow.color
-  const opacity = isSelected ? 1 : 0.85
+  const strokeWidth = Math.max(MIN_STROKE_WIDTH, cellSize * STROKE_WIDTH_RATIO)
+  const color = isError ? colors.arrowError : colors.arrowColor
+  const opacity = isSelected ? 1 : 0.95
 
   const bodyPath = useMemo(() => {
     const path = Skia.Path.Make()
     if (arrow.cells.length < 2) return path
 
-    // Draw a path through the centers of all cells
     const centers = arrow.cells.map((cell) => ({
       x: offsetX + cell.col * cellSize + cellSize / 2,
       y: offsetY + cell.row * cellSize + cellSize / 2,
@@ -51,13 +61,21 @@ export function ArrowPath({
 
     const cx = offsetX + head.col * cellSize + cellSize / 2
     const cy = offsetY + head.row * cellSize + cellSize / 2
-    const size = cellSize * 0.3
+    const size = cellSize * HEAD_SIZE_RATIO
 
     return buildArrowHead(head.content.direction, cx, cy, size)
   }, [arrow.cells, cellSize, offsetX, offsetY])
 
+  // Derive transform from shared values — Skia consumes SharedValue<Transforms3d>
+  const animatedTransform = useDerivedValue(() => {
+    if (!isAnimating || !animTranslateX || !animTranslateY) {
+      return [{ translateX: 0 }, { translateY: 0 }]
+    }
+    return [{ translateX: animTranslateX.value }, { translateY: animTranslateY.value }]
+  })
+
   return (
-    <Group opacity={opacity}>
+    <Group opacity={opacity} transform={animatedTransform}>
       {/* Body stroke */}
       <Path
         path={bodyPath}
@@ -75,7 +93,7 @@ export function ArrowPath({
           path={bodyPath}
           color={color}
           style="stroke"
-          strokeWidth={strokeWidth + 8}
+          strokeWidth={strokeWidth + 3}
           strokeCap="round"
           strokeJoin="round"
           opacity={SELECTED_GLOW_ALPHA}

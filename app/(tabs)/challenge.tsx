@@ -1,13 +1,9 @@
 import { useRouter } from 'expo-router'
+import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useProgressStore } from '../../src/store/progress.store'
-
-const BG = '#0F1120'
-const SURFACE = '#161929'
-const ACCENT = '#5B5FEF'
-const TEXT_PRIMARY = '#EEF0FF'
-const TEXT_SECONDARY = '#6C7099'
+import { useThemeColors } from '../../src/theme/colors'
 
 function getTodayDate(): string {
   return new Date().toISOString().split('T')[0]
@@ -31,6 +27,7 @@ function getDaysInMonth(): number {
 }
 
 export default function ChallengeScreen() {
+  const colors = useThemeColors()
   const router = useRouter()
   const dailyChallenges = useProgressStore((s) => s.dailyChallenges)
   const today = getTodayDate()
@@ -38,15 +35,29 @@ export default function ChallengeScreen() {
   const completedThisMonth = getCompletedThisMonth(dailyChallenges)
   const daysInMonth = getDaysInMonth()
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Daily Challenge</Text>
-        <Text style={styles.date}>{today}</Text>
+  const d = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      title: { color: colors.textPrimary },
+      date: { color: colors.textSecondary },
+      monthCard: { backgroundColor: colors.headerBand },
+      monthLabel: { color: colors.textSecondary },
+      monthProgress: { color: colors.textPrimary },
+      playButton: { backgroundColor: colors.accent },
+      playText: { color: '#FFFFFF' },
+    }),
+    [colors]
+  )
 
-        <View style={styles.monthCard}>
-          <Text style={styles.monthLabel}>{getMonthLabel()}</Text>
-          <Text style={styles.monthProgress}>
+  return (
+    <SafeAreaView style={[styles.container, d.container]}>
+      <View style={styles.content}>
+        <Text style={[styles.title, d.title]}>Daily Challenge</Text>
+        <Text style={[styles.date, d.date]}>{today}</Text>
+
+        <View style={[styles.monthCard, d.monthCard]}>
+          <Text style={[styles.monthLabel, d.monthLabel]}>{getMonthLabel()}</Text>
+          <Text style={[styles.monthProgress, d.monthProgress]}>
             {completedThisMonth} / {daysInMonth}
           </Text>
         </View>
@@ -57,10 +68,10 @@ export default function ChallengeScreen() {
           </View>
         ) : (
           <Pressable
-            style={({ pressed }) => [styles.playButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.playButton, d.playButton, pressed && styles.pressed]}
             onPress={() => router.push({ pathname: '/game', params: { level: 'daily' } })}
           >
-            <Text style={styles.playText}>Play Today's Challenge</Text>
+            <Text style={[styles.playText, d.playText]}>Play Today's Challenge</Text>
           </Pressable>
         )}
       </View>
@@ -71,7 +82,6 @@ export default function ChallengeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
   },
   content: {
     flex: 1,
@@ -83,15 +93,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: TEXT_PRIMARY,
   },
   date: {
     fontSize: 14,
-    color: TEXT_SECONDARY,
     fontFamily: 'monospace',
   },
   monthCard: {
-    backgroundColor: SURFACE,
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 16,
@@ -100,11 +107,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   monthLabel: {
-    color: TEXT_SECONDARY,
     fontSize: 13,
   },
   monthProgress: {
-    color: TEXT_PRIMARY,
     fontSize: 32,
     fontWeight: '700',
   },
@@ -120,7 +125,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   playButton: {
-    backgroundColor: ACCENT,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 14,
@@ -129,7 +133,6 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   playText: {
-    color: TEXT_PRIMARY,
     fontSize: 18,
     fontWeight: '700',
   },

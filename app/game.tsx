@@ -5,21 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
-import { HintButton } from '../src/components/HUD/HintButton'
-import { MoveCounter } from '../src/components/HUD/MoveCounter'
-import { useAnimationPlayer } from '../src/hooks/useAnimationPlayer'
+import { useArrowAnimation } from '../src/hooks/useArrowAnimation'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
-
-const BG = '#0F1120'
-const SURFACE = '#161929'
-const TEXT_PRIMARY = '#EEF0FF'
-const TEXT_SECONDARY = '#6C7099'
-const ACCENT = '#5B5FEF'
-const DIFFICULTY_COLOR = '#7B77FF'
+import { useThemeColors } from '../src/theme/colors'
 
 export default function GameScreen() {
+  const colors = useThemeColors()
   const router = useRouter()
   const params = useLocalSearchParams<{ level: string }>()
   const levelNumber = Number(params.level) || 1
@@ -31,17 +24,13 @@ export default function GameScreen() {
   const status = useGameStore((s) => s.status)
   const selectedArrowId = useGameStore((s) => s.selectedArrowId)
   const moveHistory = useGameStore((s) => s.moveHistory)
-  const solution = useGameStore((s) => s.solution)
   const level = useGameStore((s) => s.level)
   const isAnimating = useGameStore((s) => s.isAnimating)
   const errorArrowIds = useGameStore((s) => s.errorArrowIds)
+  const animatingArrowId = useGameStore((s) => s.animatingArrowId)
 
   const makeMove = useGameStore((s) => s.makeMove)
-  const undo = useGameStore((s) => s.undo)
   const restart = useGameStore((s) => s.restart)
-  const useHint = useGameStore((s) => s.useHint)
-
-  useAnimationPlayer()
 
   const recordComplete = useProgressStore((s) => s.recordLevelComplete)
 
@@ -64,6 +53,9 @@ export default function GameScreen() {
 
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
+  // Smooth animation via Reanimated shared values
+  const { translateX, translateY } = useArrowAnimation(cellSize)
+
   const handleArrowTap = useCallback(
     (arrowId: string) => {
       if (status !== 'playing' || isAnimating) return
@@ -80,37 +72,82 @@ export default function GameScreen() {
     router.replace({ pathname: '/game', params: { level: (levelNumber + 1).toString() } })
   }, [level, heartsRemaining, levelNumber, recordComplete, router])
 
+  const dynamicStyles = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      headerBand: { backgroundColor: colors.headerBand },
+      buttonBg: { backgroundColor: colors.buttonBg },
+      buttonIcon: { color: colors.buttonIcon },
+      levelText: { color: colors.accent },
+      loadingText: { color: colors.textSecondary },
+      errorText: { color: colors.arrowError },
+      retryText: { color: colors.accent },
+      overlayBg: { backgroundColor: colors.overlayBg },
+      overlayCard: { backgroundColor: colors.overlayCard },
+      overlayTitle: { color: colors.textPrimary },
+      overlaySubtitle: { color: colors.textSecondary },
+      nextButton: { backgroundColor: colors.accent },
+      nextButtonText: { color: '#FFFFFF' },
+    }),
+    [colors]
+  )
+
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Generating puzzle...</Text>
+      <SafeAreaView style={[styles.container, dynamicStyles.container]}>
+        <Text style={[styles.loadingText, dynamicStyles.loadingText]}>Generating puzzle...</Text>
       </SafeAreaView>
     )
   }
 
   if (error || !gridState) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.errorText}>{error ?? 'Failed to load level'}</Text>
+      <SafeAreaView style={[styles.container, dynamicStyles.container]}>
+        <Text style={[styles.errorText, dynamicStyles.errorText]}>
+          {error ?? 'Failed to load level'}
+        </Text>
         <Pressable style={styles.retryButton} onPress={() => router.back()}>
-          <Text style={styles.retryText}>Back</Text>
+          <Text style={[styles.retryText, dynamicStyles.retryText]}>Back</Text>
         </Pressable>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>{'\u2190'}</Text>
-        </Pressable>
-        <View style={styles.levelBadge}>
-          <Text style={styles.levelText}>Level {levelNumber}</Text>
-          <Text style={styles.difficultyText}>{level?.difficulty}</Text>
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
+      {/* Header band */}
+      <View style={[styles.headerBand, dynamicStyles.headerBand]}>
+        <View style={styles.topBar}>
+          {/* Left: back + restart buttons */}
+          <View style={styles.leftButtons}>
+            <Pressable
+              style={[styles.circleButton, dynamicStyles.buttonBg]}
+              onPress={() => router.back()}
+            >
+              <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u25C0'}</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.circleButton, dynamicStyles.buttonBg, isAnimating && styles.disabled]}
+              onPress={restart}
+              disabled={isAnimating}
+            >
+              <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u21BA'}</Text>
+            </Pressable>
+          </View>
+
+          {/* Center: level label + hearts */}
+          <View style={styles.centerInfo}>
+            <Text style={[styles.levelText, dynamicStyles.levelText]}>
+              {level?.difficulty === 'easy'
+                ? `Level ${levelNumber}`
+                : (level?.difficulty ?? `Level ${levelNumber}`)}
+            </Text>
+            <Hearts remaining={heartsRemaining} colors={colors} />
+          </View>
+
+          {/* Right: spacer to balance layout */}
+          <View style={styles.leftButtons} />
         </View>
-        <Hearts remaining={heartsRemaining} />
       </View>
 
       {/* Game grid */}
@@ -123,6 +160,10 @@ export default function GameScreen() {
             canvasWidth={canvasWidth}
             cellSize={cellSize}
             offsetX={offsetX}
+            colors={colors}
+            animatingArrowId={animatingArrowId}
+            animTranslateX={translateX}
+            animTranslateY={translateY}
           />
           <GridOverlay
             gridState={gridState}
@@ -133,42 +174,19 @@ export default function GameScreen() {
         </View>
       </View>
 
-      {/* Bottom controls */}
-      <View style={styles.bottomBar}>
-        <MoveCounter moves={moveHistory.length} optimal={solution.length} />
-
-        <View style={styles.controls}>
-          <Pressable
-            style={[
-              styles.controlButton,
-              (moveHistory.length === 0 || isAnimating) && styles.controlDisabled,
-            ]}
-            onPress={undo}
-            disabled={moveHistory.length === 0 || isAnimating}
-          >
-            <Text style={styles.controlText}>{'\u21B6'} Undo</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.controlButton, isAnimating && styles.controlDisabled]}
-            onPress={restart}
-            disabled={isAnimating}
-          >
-            <Text style={styles.controlText}>{'\u21BB'} Restart</Text>
-          </Pressable>
-          <HintButton onPress={useHint} />
-        </View>
-      </View>
-
       {/* Win overlay */}
       {status === 'won' && (
-        <View style={styles.overlay}>
-          <View style={styles.overlayCard}>
-            <Text style={styles.overlayTitle}>Level Complete!</Text>
-            <Text style={styles.overlaySubtitle}>
+        <View style={[styles.overlay, dynamicStyles.overlayBg]}>
+          <View style={[styles.overlayCard, dynamicStyles.overlayCard]}>
+            <Text style={[styles.overlayTitle, dynamicStyles.overlayTitle]}>Level Complete!</Text>
+            <Text style={[styles.overlaySubtitle, dynamicStyles.overlaySubtitle]}>
               {moveHistory.length} moves {heartsRemaining === 3 ? '(Perfect!)' : ''}
             </Text>
-            <Pressable style={styles.nextButton} onPress={handleNextLevel}>
-              <Text style={styles.nextButtonText}>Next Level</Text>
+            <Pressable
+              style={[styles.nextButton, dynamicStyles.nextButton]}
+              onPress={handleNextLevel}
+            >
+              <Text style={[styles.nextButtonText, dynamicStyles.nextButtonText]}>Next Level</Text>
             </Pressable>
           </View>
         </View>
@@ -176,11 +194,11 @@ export default function GameScreen() {
 
       {/* Fail overlay */}
       {status === 'failed' && (
-        <View style={styles.overlay}>
-          <View style={styles.overlayCard}>
-            <Text style={styles.overlayTitle}>Out of Hearts</Text>
-            <Pressable style={styles.nextButton} onPress={restart}>
-              <Text style={styles.nextButtonText}>Try Again</Text>
+        <View style={[styles.overlay, dynamicStyles.overlayBg]}>
+          <View style={[styles.overlayCard, dynamicStyles.overlayCard]}>
+            <Text style={[styles.overlayTitle, dynamicStyles.overlayTitle]}>Out of Hearts</Text>
+            <Pressable style={[styles.nextButton, dynamicStyles.nextButton]} onPress={restart}>
+              <Text style={[styles.nextButtonText, dynamicStyles.nextButtonText]}>Try Again</Text>
             </Pressable>
           </View>
         </View>
@@ -192,16 +210,13 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
   },
   loadingText: {
-    color: TEXT_SECONDARY,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 100,
   },
   errorText: {
-    color: '#FF4A6A',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 100,
@@ -211,74 +226,56 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryText: {
-    color: ACCENT,
     fontSize: 16,
+  },
+  headerBand: {
+    paddingBottom: 12,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
-  backButton: {
-    padding: 8,
+  leftButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    width: 88,
   },
-  backText: {
-    color: TEXT_PRIMARY,
-    fontSize: 24,
-  },
-  levelBadge: {
+  circleButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  levelText: {
-    color: TEXT_PRIMARY,
+  circleButtonIcon: {
     fontSize: 16,
     fontWeight: '700',
   },
-  difficultyText: {
-    color: DIFFICULTY_COLOR,
-    fontSize: 12,
-    fontWeight: '600',
+  disabled: {
+    opacity: 0.4,
+  },
+  centerInfo: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  levelText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   gridContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bottomBar: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 16,
-    alignItems: 'center',
-  },
-  controls: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  controlButton: {
-    backgroundColor: SURFACE,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  controlDisabled: {
-    opacity: 0.4,
-  },
-  controlText: {
-    color: TEXT_PRIMARY,
-    fontSize: 14,
-    fontWeight: '600',
-  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 17, 32, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   overlayCard: {
-    backgroundColor: SURFACE,
     paddingHorizontal: 40,
     paddingVertical: 32,
     borderRadius: 20,
@@ -286,23 +283,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   overlayTitle: {
-    color: TEXT_PRIMARY,
     fontSize: 28,
     fontWeight: '800',
   },
   overlaySubtitle: {
-    color: TEXT_SECONDARY,
     fontSize: 16,
   },
   nextButton: {
-    backgroundColor: ACCENT,
     paddingHorizontal: 40,
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 12,
   },
   nextButtonText: {
-    color: TEXT_PRIMARY,
     fontSize: 16,
     fontWeight: '700',
   },

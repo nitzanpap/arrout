@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { executeMoveSteps } from '../engine/move'
+import { canMove, executeMove } from '../engine/move'
 import { solve } from '../engine/solver'
 import type { GridState, Level } from '../engine/types'
 
@@ -26,20 +26,20 @@ interface GameState {
   readonly selectedArrowId: string | null
   readonly solution: readonly string[]
 
-  // Animation
-  readonly animationSteps: readonly GridState[]
+  // Animation (smooth model — no intermediate steps)
   readonly isAnimating: boolean
   readonly animationType: AnimationType
   readonly animatingArrowId: string | null
   readonly preAnimationState: GridState | null
+  readonly pendingFinalState: GridState | null
   readonly errorArrowIds: readonly string[]
 
   // Actions
   loadLevel: (level: Level) => void
   selectArrow: (arrowId: string | null) => void
   makeMove: (arrowId: string) => void
-  advanceAnimation: () => void
-  completeAnimation: () => void
+  completeValidAnimation: () => void
+  completeInvalidAnimation: () => void
   undo: () => void
   restart: () => void
   useHint: () => string | null
@@ -58,11 +58,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedArrowId: null,
   solution: [],
 
-  animationSteps: [],
   isAnimating: false,
   animationType: null,
   animatingArrowId: null,
   preAnimationState: null,
+  pendingFinalState: null,
   errorArrowIds: [],
 
   loadLevel: (level: Level) => {
@@ -76,11 +76,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       status: 'playing',
       selectedArrowId: null,
       solution: level.solution,
-      animationSteps: [],
       isAnimating: false,
       animationType: null,
       animatingArrowId: null,
       preAnimationState: null,
+      pendingFinalState: null,
       errorArrowIds: [],
     })
   },
@@ -98,122 +98,80 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     debugLog('makeMove', `arrow=${arrowId}, arrows on board=${gridState.arrows.length}`)
 
-    const result = executeMoveSteps(arrowId, gridState)
+    if (canMove(arrowId, gridState)) {
+      // Valid move — compute final state, let Reanimated handle the visual slide
+      const result = executeMove(arrowId, gridState)
+      debugLog('makeMove', `valid move, arrowRemoved=${result.arrowRemoved}`)
 
-    debugLog(
-      'makeMove',
-      `result: success=${result.success}, steps=${result.steps.length}, heartLost=${result.heartLost}`
-    )
-
-    if (result.success) {
-      // Valid move: animate forward steps, arrow slides off
       set({
-        animationSteps: result.steps,
         isAnimating: true,
         animationType: 'valid',
         animatingArrowId: arrowId,
         preAnimationState: gridState,
+        pendingFinalState: result.nextState,
         selectedArrowId: null,
       })
     } else {
-      // Invalid move: animate forward bump then bounce back to original
+      // Invalid move — Reanimated will do a bump + spring back
+      debugLog('makeMove', `invalid move for arrow=${arrowId}`)
+
       set({
-        animationSteps: [gridState],
         isAnimating: true,
         animationType: 'invalid',
         animatingArrowId: arrowId,
         preAnimationState: gridState,
+        pendingFinalState: null,
         selectedArrowId: null,
       })
     }
   },
 
-  advanceAnimation: () => {
-    const {
-      animationSteps,
-      animationType,
-      animatingArrowId,
-      preAnimationState,
-      heartsRemaining,
-      moveHistory,
-      errorArrowIds,
-    } = get()
+  completeValidAnimation: () => {
+    const { pendingFinalState, preAnimationState, moveHistory, animatingArrowId, errorArrowIds } =
+      get()
 
-    if (animationSteps.length === 0) return
+    if (!pendingFinalState) return
 
-    const nextStep = animationSteps[0]
-    const remainingSteps = animationSteps.slice(1)
+    const isWon = pendingFinalState.arrows.length === 0
+    debugLog('completeValidAnimation', `isWon=${isWon}`)
 
-    debugLog(
-      'advanceAnimation',
-      `type=${animationType}, remaining=${remainingSteps.length}, arrow=${animatingArrowId}`
-    )
+    const updatedErrorIds = animatingArrowId
+      ? errorArrowIds.filter((id) => id !== animatingArrowId)
+      : errorArrowIds
 
-    if (remainingSteps.length > 0) {
-      // More steps to play
-      set({
-        gridState: nextStep,
-        animationSteps: remainingSteps,
-      })
-      return
-    }
-
-    // Last step — finalize
-    if (animationType === 'valid') {
-      const isWon = nextStep.arrows.length === 0
-      debugLog('advanceAnimation', `valid move complete, isWon=${isWon}`)
-      const updatedErrorIds = animatingArrowId
-        ? errorArrowIds.filter((id) => id !== animatingArrowId)
-        : errorArrowIds
-
-      set({
-        gridState: nextStep,
-        moveHistory: preAnimationState ? [...moveHistory, preAnimationState] : moveHistory,
-        animationSteps: [],
-        isAnimating: false,
-        animationType: null,
-        animatingArrowId: null,
-        preAnimationState: null,
-        status: isWon ? 'won' : 'playing',
-        errorArrowIds: updatedErrorIds,
-      })
-    } else {
-      // Invalid move — bounce back complete, lose heart, mark arrow red
-      const newHearts = heartsRemaining - 1
-      debugLog(
-        'advanceAnimation',
-        `invalid move complete, arrow=${animatingArrowId}, hearts=${newHearts}`
-      )
-      const updatedErrorIds = animatingArrowId
-        ? [...errorArrowIds.filter((id) => id !== animatingArrowId), animatingArrowId]
-        : errorArrowIds
-
-      set({
-        gridState: nextStep,
-        animationSteps: [],
-        isAnimating: false,
-        animationType: null,
-        animatingArrowId: null,
-        preAnimationState: null,
-        heartsRemaining: newHearts,
-        status: newHearts <= 0 ? 'failed' : 'playing',
-        errorArrowIds: updatedErrorIds,
-      })
-    }
+    set({
+      gridState: pendingFinalState,
+      moveHistory: preAnimationState ? [...moveHistory, preAnimationState] : moveHistory,
+      isAnimating: false,
+      animationType: null,
+      animatingArrowId: null,
+      preAnimationState: null,
+      pendingFinalState: null,
+      status: isWon ? 'won' : 'playing',
+      errorArrowIds: updatedErrorIds,
+    })
   },
 
-  completeAnimation: () => {
-    const { animationSteps } = get()
-    if (animationSteps.length === 0) return
+  completeInvalidAnimation: () => {
+    const { heartsRemaining, animatingArrowId, errorArrowIds } = get()
 
-    // Jump to the last step immediately
-    const finalStep = animationSteps[animationSteps.length - 1]
+    const newHearts = heartsRemaining - 1
+    debugLog('completeInvalidAnimation', `arrow=${animatingArrowId}, hearts=${newHearts}`)
+
+    const updatedErrorIds = animatingArrowId
+      ? [...errorArrowIds.filter((id) => id !== animatingArrowId), animatingArrowId]
+      : errorArrowIds
+
     set({
-      gridState: finalStep,
-      animationSteps: [finalStep],
+      isAnimating: false,
+      animationType: null,
+      animatingArrowId: null,
+      preAnimationState: null,
+      pendingFinalState: null,
+      heartsRemaining: newHearts,
+      status: newHearts <= 0 ? 'failed' : 'playing',
+      errorArrowIds: updatedErrorIds,
     })
-    // Then let advanceAnimation handle finalization
-    get().advanceAnimation()
   },
 
   undo: () => {
@@ -240,11 +198,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       status: 'playing',
       selectedArrowId: null,
       errorArrowIds: [],
-      animationSteps: [],
       isAnimating: false,
       animationType: null,
       animatingArrowId: null,
       preAnimationState: null,
+      pendingFinalState: null,
     })
   },
 

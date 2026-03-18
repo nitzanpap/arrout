@@ -1,13 +1,9 @@
 import { useRouter } from 'expo-router'
+import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useProgressStore } from '../../src/store/progress.store'
-
-const BG = '#0F1120'
-const ACCENT = '#5B5FEF'
-const TEXT_PRIMARY = '#EEF0FF'
-const TEXT_SECONDARY = '#6C7099'
-const DIFFICULTY_COLOR = '#7B77FF'
+import { useThemeColors } from '../../src/theme/colors'
 
 function getDifficultyLabel(level: number): string {
   if (level <= 50) return 'Easy'
@@ -17,35 +13,57 @@ function getDifficultyLabel(level: number): string {
 }
 
 export default function HomeScreen() {
+  const colors = useThemeColors()
   const router = useRouter()
   const currentLevel = useProgressStore((s) => s.currentLevel)
   const streak = useProgressStore((s) => s.streak)
 
+  const dynamicStyles = useMemo(
+    () => ({
+      container: { backgroundColor: colors.background },
+      logo: { color: colors.textPrimary },
+      subtitle: { color: colors.textSecondary },
+      levelNumber: { color: colors.textPrimary },
+      difficulty: { color: colors.accent },
+      streakBg: { backgroundColor: colors.headerBand },
+      streakLabel: { color: colors.textSecondary },
+      playButton: { backgroundColor: colors.accent },
+      playButtonText: { color: '#FFFFFF' },
+    }),
+    [colors]
+  )
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
       <View style={styles.content}>
-        <Text style={styles.logo}>Arrout</Text>
-        <Text style={styles.subtitle}>Slide the arrows</Text>
+        <Text style={[styles.logo, dynamicStyles.logo]}>Arrout</Text>
+        <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Slide the arrows</Text>
 
         <View style={styles.levelInfo}>
-          <Text style={styles.levelNumber}>Level {currentLevel}</Text>
-          <Text style={styles.difficulty}>{getDifficultyLabel(currentLevel)}</Text>
+          <Text style={[styles.levelNumber, dynamicStyles.levelNumber]}>Level {currentLevel}</Text>
+          <Text style={[styles.difficulty, dynamicStyles.difficulty]}>
+            {getDifficultyLabel(currentLevel)}
+          </Text>
         </View>
 
         {streak > 0 && (
-          <View style={styles.streakContainer}>
-            <Text style={styles.streakLabel}>Streak</Text>
+          <View style={[styles.streakContainer, dynamicStyles.streakBg]}>
+            <Text style={[styles.streakLabel, dynamicStyles.streakLabel]}>Streak</Text>
             <Text style={styles.streakValue}>{streak}</Text>
           </View>
         )}
 
         <Pressable
-          style={({ pressed }) => [styles.playButton, pressed && styles.playButtonPressed]}
+          style={({ pressed }) => [
+            styles.playButton,
+            dynamicStyles.playButton,
+            pressed && styles.playButtonPressed,
+          ]}
           onPress={() =>
             router.push({ pathname: '/game', params: { level: currentLevel.toString() } })
           }
         >
-          <Text style={styles.playButtonText}>Play</Text>
+          <Text style={[styles.playButtonText, dynamicStyles.playButtonText]}>Play</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -55,7 +73,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
   },
   content: {
     flex: 1,
@@ -66,12 +83,10 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 48,
     fontWeight: '800',
-    color: TEXT_PRIMARY,
     letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
-    color: TEXT_SECONDARY,
     marginTop: 4,
   },
   levelInfo: {
@@ -81,12 +96,10 @@ const styles = StyleSheet.create({
   levelNumber: {
     fontSize: 20,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
   },
   difficulty: {
     fontSize: 14,
     fontWeight: '600',
-    color: DIFFICULTY_COLOR,
     marginTop: 4,
   },
   streakContainer: {
@@ -96,12 +109,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#161929',
     borderRadius: 12,
   },
   streakLabel: {
     fontSize: 13,
-    color: TEXT_SECONDARY,
   },
   streakValue: {
     fontSize: 18,
@@ -109,7 +120,6 @@ const styles = StyleSheet.create({
     color: '#FFEAA7',
   },
   playButton: {
-    backgroundColor: ACCENT,
     paddingHorizontal: 80,
     paddingVertical: 18,
     borderRadius: 16,
@@ -122,6 +132,5 @@ const styles = StyleSheet.create({
   playButtonText: {
     fontSize: 20,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
   },
 })

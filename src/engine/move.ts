@@ -127,6 +127,32 @@ export function executeMove(arrowId: string, state: GridState): MoveResult {
   }
 }
 
+/**
+ * Computes how many cells the arrow needs to travel to fully exit the board.
+ * This is the distance from the head to the board edge plus the arrow's length.
+ * Multiply by cellSize to get pixel distance for smooth animation.
+ */
+export function computeSlideDistanceCells(arrowId: string, state: GridState): number {
+  const arrow = getArrow(state, arrowId)
+  if (!arrow) return 0
+
+  const direction = getHeadDirection(arrow)
+  const head = arrow.cells[0]
+  const delta = directionDelta(direction)
+
+  let distance = 0
+  let row = head.row + delta.row
+  let col = head.col + delta.col
+
+  while (isInBounds(state, { row, col })) {
+    distance++
+    row += delta.row
+    col += delta.col
+  }
+
+  return distance + arrow.cells.length
+}
+
 // ── Internal ────────────────────────────────────────────────────
 
 /**
