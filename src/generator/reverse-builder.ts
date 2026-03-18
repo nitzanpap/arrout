@@ -116,9 +116,9 @@ function tryPlaceArrow(
 }
 
 /**
- * Generates candidate head positions. Allows up to 1 blocker in the exit
- * path since the full-path dependency graph and cycle detection ensure
- * correctness. This dramatically increases the candidate pool on dense grids.
+ * Generates candidate head positions from all empty cells.
+ * No exit-path filter — the full-path dependency graph with cycle detection
+ * and topological sort ensures correctness. This maximizes the candidate pool.
  *
  * Once the grid is partially populated (>30% of target), prioritizes
  * interior positions to create denser blocking patterns.
