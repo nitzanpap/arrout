@@ -8,14 +8,23 @@ interface ArrowPathProps {
   readonly offsetX: number
   readonly offsetY: number
   readonly isSelected: boolean
+  readonly isError: boolean
 }
 
 const SELECTED_GLOW_ALPHA = 0.4
 const STROKE_WIDTH_RATIO = 0.35
+const ERROR_COLOR = '#FF4A6A'
 
-export function ArrowPath({ arrow, cellSize, offsetX, offsetY, isSelected }: ArrowPathProps) {
+export function ArrowPath({
+  arrow,
+  cellSize,
+  offsetX,
+  offsetY,
+  isSelected,
+  isError,
+}: ArrowPathProps) {
   const strokeWidth = cellSize * STROKE_WIDTH_RATIO
-  const color = arrow.color
+  const color = isError ? ERROR_COLOR : arrow.color
   const opacity = isSelected ? 1 : 0.85
 
   const bodyPath = useMemo(() => {

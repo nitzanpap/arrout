@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import { canMove, executeMove } from '../engine/move'
+import { canMove, executeMoveSteps } from '../engine/move'
 import { solve } from '../engine/solver'
 import type { GridState, Level } from '../engine/types'
 
 export type GameStatus = 'idle' | 'playing' | 'won' | 'failed'
+export type AnimationType = 'valid' | 'invalid' | null
 
 interface GameState {
   // Data
@@ -17,10 +18,20 @@ interface GameState {
   readonly selectedArrowId: string | null
   readonly solution: readonly string[]
 
+  // Animation
+  readonly animationSteps: readonly GridState[]
+  readonly isAnimating: boolean
+  readonly animationType: AnimationType
+  readonly animatingArrowId: string | null
+  readonly preAnimationState: GridState | null
+  readonly errorArrowIds: readonly string[]
+
   // Actions
   loadLevel: (level: Level) => void
   selectArrow: (arrowId: string | null) => void
   makeMove: (arrowId: string) => void
+  advanceAnimation: () => void
+  completeAnimation: () => void
   undo: () => void
   restart: () => void
   useHint: () => string | null
@@ -39,6 +50,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedArrowId: null,
   solution: [],
 
+  animationSteps: [],
+  isAnimating: false,
+  animationType: null,
+  animatingArrowId: null,
+  preAnimationState: null,
+  errorArrowIds: [],
+
   loadLevel: (level: Level) => {
     set({
       level,
@@ -50,6 +68,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       status: 'playing',
       selectedArrowId: null,
       solution: level.solution,
+      animationSteps: [],
+      isAnimating: false,
+      animationType: null,
+      animatingArrowId: null,
+      preAnimationState: null,
+      errorArrowIds: [],
     })
   },
 
@@ -58,37 +82,116 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   makeMove: (arrowId: string) => {
-    const { gridState, status, heartsRemaining, moveHistory } = get()
-    if (!gridState || status !== 'playing') return
+    const { gridState, status, isAnimating } = get()
+    if (!gridState || status !== 'playing' || isAnimating) return
 
-    if (!canMove(arrowId, gridState)) {
-      // Invalid move - lose a heart
-      const newHearts = heartsRemaining - 1
+    const isValid = canMove(arrowId, gridState)
+    const result = executeMoveSteps(arrowId, gridState)
+
+    if (isValid) {
+      // Valid move: animate forward steps, arrow slides off
       set({
-        heartsRemaining: newHearts,
+        animationSteps: result.steps,
+        isAnimating: true,
+        animationType: 'valid',
+        animatingArrowId: arrowId,
+        preAnimationState: gridState,
         selectedArrowId: null,
-        status: newHearts <= 0 ? 'failed' : 'playing',
+      })
+    } else {
+      // Invalid move: animate forward bump then bounce back to original
+      set({
+        animationSteps: [gridState],
+        isAnimating: true,
+        animationType: 'invalid',
+        animatingArrowId: arrowId,
+        preAnimationState: gridState,
+        selectedArrowId: null,
+      })
+    }
+  },
+
+  advanceAnimation: () => {
+    const {
+      animationSteps,
+      animationType,
+      animatingArrowId,
+      preAnimationState,
+      heartsRemaining,
+      moveHistory,
+      errorArrowIds,
+    } = get()
+
+    if (animationSteps.length === 0) return
+
+    const nextStep = animationSteps[0]
+    const remainingSteps = animationSteps.slice(1)
+
+    if (remainingSteps.length > 0) {
+      // More steps to play
+      set({
+        gridState: nextStep,
+        animationSteps: remainingSteps,
       })
       return
     }
 
-    const result = executeMove(arrowId, gridState)
-    if (!result.success) return
+    // Last step — finalize
+    if (animationType === 'valid') {
+      const isWon = nextStep.arrows.length === 0
+      const updatedErrorIds = animatingArrowId
+        ? errorArrowIds.filter((id) => id !== animatingArrowId)
+        : errorArrowIds
 
-    const newState = result.nextState
-    const isWon = newState.arrows.length === 0
+      set({
+        gridState: nextStep,
+        moveHistory: preAnimationState ? [...moveHistory, preAnimationState] : moveHistory,
+        animationSteps: [],
+        isAnimating: false,
+        animationType: null,
+        animatingArrowId: null,
+        preAnimationState: null,
+        status: isWon ? 'won' : 'playing',
+        errorArrowIds: updatedErrorIds,
+      })
+    } else {
+      // Invalid move — bounce back complete, lose heart, mark arrow red
+      const newHearts = heartsRemaining - 1
+      const updatedErrorIds = animatingArrowId
+        ? [...errorArrowIds.filter((id) => id !== animatingArrowId), animatingArrowId]
+        : errorArrowIds
 
+      set({
+        gridState: nextStep,
+        animationSteps: [],
+        isAnimating: false,
+        animationType: null,
+        animatingArrowId: null,
+        preAnimationState: null,
+        heartsRemaining: newHearts,
+        status: newHearts <= 0 ? 'failed' : 'playing',
+        errorArrowIds: updatedErrorIds,
+      })
+    }
+  },
+
+  completeAnimation: () => {
+    const { animationSteps } = get()
+    if (animationSteps.length === 0) return
+
+    // Jump to the last step immediately
+    const finalStep = animationSteps[animationSteps.length - 1]
     set({
-      gridState: newState,
-      moveHistory: [...moveHistory, gridState],
-      selectedArrowId: null,
-      status: isWon ? 'won' : 'playing',
+      gridState: finalStep,
+      animationSteps: [finalStep],
     })
+    // Then let advanceAnimation handle finalization
+    get().advanceAnimation()
   },
 
   undo: () => {
-    const { moveHistory, status } = get()
-    if (moveHistory.length === 0 || status !== 'playing') return
+    const { moveHistory, status, isAnimating } = get()
+    if (moveHistory.length === 0 || status !== 'playing' || isAnimating) return
 
     const previous = moveHistory[moveHistory.length - 1]
     set({
@@ -99,8 +202,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   restart: () => {
-    const { initialGridState, level } = get()
-    if (!initialGridState || !level) return
+    const { initialGridState, level, isAnimating } = get()
+    if (!initialGridState || !level || isAnimating) return
 
     set({
       gridState: initialGridState,
@@ -109,14 +212,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       hintsUsed: 0,
       status: 'playing',
       selectedArrowId: null,
+      errorArrowIds: [],
+      animationSteps: [],
+      isAnimating: false,
+      animationType: null,
+      animatingArrowId: null,
+      preAnimationState: null,
     })
   },
 
   useHint: () => {
-    const { gridState, status } = get()
-    if (!gridState || status !== 'playing') return null
+    const { gridState, status, isAnimating } = get()
+    if (!gridState || status !== 'playing' || isAnimating) return null
 
-    // Use the solver to find the next best move
     const result = solve(gridState)
     if (!result.solvable || result.moves.length === 0) return null
 

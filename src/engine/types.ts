@@ -56,6 +56,13 @@ export interface MoveResult {
   readonly heartLost: boolean
 }
 
+export interface MoveStepsResult {
+  readonly success: boolean
+  readonly steps: readonly GridState[]
+  readonly heartLost: boolean
+  readonly arrowId: string
+}
+
 // ── Level ───────────────────────────────────────────────────────
 
 export interface Level {

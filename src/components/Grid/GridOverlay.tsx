@@ -6,19 +6,10 @@ interface GridOverlayProps {
   readonly gridState: GridState
   readonly cellSize: number
   readonly offsetX: number
-  readonly padding?: number
   readonly onArrowTap: (arrowId: string) => void
 }
 
-export function GridOverlay({
-  gridState,
-  cellSize,
-  offsetX,
-  padding = 20,
-  onArrowTap,
-}: GridOverlayProps) {
-  const gridHeight = cellSize * gridState.height
-
+export function GridOverlay({ gridState, cellSize, offsetX, onArrowTap }: GridOverlayProps) {
   const handlePress = useCallback(
     (event: { nativeEvent: { locationX: number; locationY: number } }) => {
       const { locationX, locationY } = event.nativeEvent
@@ -35,19 +26,11 @@ export function GridOverlay({
     [gridState, cellSize, offsetX, onArrowTap]
   )
 
-  return (
-    <Pressable
-      style={[styles.overlay, { height: gridHeight, marginHorizontal: padding }]}
-      onPress={handlePress}
-    />
-  )
+  return <Pressable style={styles.overlay} onPress={handlePress} />
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    ...StyleSheet.absoluteFillObject,
   },
 })

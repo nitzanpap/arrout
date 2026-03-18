@@ -1,6 +1,6 @@
 import { getHeadDirection } from './arrow'
 import { getArrow, getCell, isInBounds, placeArrow, removeArrow } from './grid'
-import type { Arrow, Direction, GridCell, GridState, MoveResult } from './types'
+import type { Arrow, Direction, GridCell, GridState, MoveResult, MoveStepsResult } from './types'
 import { directionDelta } from './types'
 
 // ── Public API ──────────────────────────────────────────────────
@@ -27,43 +27,58 @@ export function canMove(arrowId: string, grid: GridState): boolean {
 }
 
 /**
- * Executes a move for the given arrow.
- * If the arrow can move, it slides forward step by step (snake mechanics)
- * until it fully exits the board. Returns the resulting state.
- * If the arrow cannot move, returns heartLost: true.
+ * Returns intermediate grid states for each step of the arrow's movement.
+ * Valid moves: steps show the arrow sliding forward until it exits the board.
+ * Invalid moves: steps show a brief forward bump then reverse back to original position.
  */
-export function executeMove(arrowId: string, state: GridState): MoveResult {
+export function executeMoveSteps(arrowId: string, state: GridState): MoveStepsResult {
   if (!canMove(arrowId, state)) {
     return {
       success: false,
-      nextState: state,
-      arrowRemoved: false,
+      steps: [state],
       heartLost: true,
+      arrowId,
     }
   }
 
   const arrow = getArrow(state, arrowId)
   if (!arrow) {
-    return { success: false, nextState: state, arrowRemoved: false, heartLost: true }
+    return { success: false, steps: [state], heartLost: true, arrowId }
   }
 
-  // Capture the direction before the head might exit the board
   const direction = getHeadDirection(arrow)
+  const steps: GridState[] = []
 
   let current = state
   let currentArrow = getArrow(current, arrowId)
 
-  // Step the snake forward until it's fully off the board
   while (currentArrow && currentArrow.cells.length > 0) {
     current = stepSnakeForward(currentArrow, direction, current)
+    steps.push(current)
     currentArrow = getArrow(current, arrowId)
   }
 
   return {
     success: true,
-    nextState: current,
-    arrowRemoved: true,
+    steps,
     heartLost: false,
+    arrowId,
+  }
+}
+
+/**
+ * Executes a move for the given arrow (convenience wrapper).
+ * Returns the final state after all steps complete.
+ */
+export function executeMove(arrowId: string, state: GridState): MoveResult {
+  const result = executeMoveSteps(arrowId, state)
+  const finalState = result.steps.length > 0 ? result.steps[result.steps.length - 1] : state
+
+  return {
+    success: result.success,
+    nextState: finalState,
+    arrowRemoved: result.success,
+    heartLost: result.heartLost,
   }
 }
 

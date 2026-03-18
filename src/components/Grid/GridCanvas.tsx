@@ -1,35 +1,32 @@
 import { Canvas, Line, vec } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
-import { useWindowDimensions } from 'react-native'
 import type { GridState } from '../../engine/types'
 import { ArrowPath } from './ArrowPath'
 
 interface GridCanvasProps {
   readonly gridState: GridState
   readonly selectedArrowId: string | null
-  readonly padding?: number
+  readonly errorArrowIds: readonly string[]
+  readonly canvasWidth: number
+  readonly cellSize: number
+  readonly offsetX: number
 }
 
 const GRID_LINE_COLOR = 'rgba(200, 206, 255, 0.08)'
-const _CELL_BG_COLOR = '#161929'
 
-export function GridCanvas({ gridState, selectedArrowId, padding = 20 }: GridCanvasProps) {
-  const { width: screenWidth } = useWindowDimensions()
-  const canvasWidth = screenWidth - padding * 2
-
-  const cellSize = useMemo(() => {
-    const maxCellW = canvasWidth / gridState.width
-    const maxCellH = canvasWidth / gridState.height // keep square
-    return Math.floor(Math.min(maxCellW, maxCellH))
-  }, [canvasWidth, gridState.width, gridState.height])
-
+export function GridCanvas({
+  gridState,
+  selectedArrowId,
+  errorArrowIds,
+  canvasWidth,
+  cellSize,
+  offsetX,
+}: GridCanvasProps) {
   const gridWidth = cellSize * gridState.width
   const gridHeight = cellSize * gridState.height
-  const offsetX = (canvasWidth - gridWidth) / 2
   const offsetY = 0
 
   return (
-    <Canvas style={{ width: canvasWidth, height: gridHeight + padding }}>
+    <Canvas style={{ width: canvasWidth, height: gridHeight }}>
       {/* Grid lines */}
       {Array.from({ length: gridState.width + 1 }, (_, i) => (
         <Line
@@ -59,6 +56,7 @@ export function GridCanvas({ gridState, selectedArrowId, padding = 20 }: GridCan
           offsetX={offsetX}
           offsetY={offsetY}
           isSelected={arrow.id === selectedArrowId}
+          isError={errorArrowIds.includes(arrow.id)}
         />
       ))}
     </Canvas>

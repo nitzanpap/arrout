@@ -7,6 +7,7 @@ import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
 import { HintButton } from '../src/components/HUD/HintButton'
 import { MoveCounter } from '../src/components/HUD/MoveCounter'
+import { useAnimationPlayer } from '../src/hooks/useAnimationPlayer'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
@@ -32,51 +33,44 @@ export default function GameScreen() {
   const moveHistory = useGameStore((s) => s.moveHistory)
   const solution = useGameStore((s) => s.solution)
   const level = useGameStore((s) => s.level)
+  const isAnimating = useGameStore((s) => s.isAnimating)
+  const errorArrowIds = useGameStore((s) => s.errorArrowIds)
 
   const makeMove = useGameStore((s) => s.makeMove)
-  const selectArrow = useGameStore((s) => s.selectArrow)
   const undo = useGameStore((s) => s.undo)
   const restart = useGameStore((s) => s.restart)
   const useHint = useGameStore((s) => s.useHint)
+
+  useAnimationPlayer()
 
   const recordComplete = useProgressStore((s) => s.recordLevelComplete)
 
   const { width: screenWidth } = useWindowDimensions()
   const padding = 20
 
+  const canvasWidth = screenWidth - padding * 2
+
   const cellSize = useMemo(() => {
     if (!gridState) return 0
-    const available = screenWidth - padding * 2
-    const maxW = available / gridState.width
-    const maxH = available / gridState.height
+    const maxW = canvasWidth / gridState.width
+    const maxH = canvasWidth / gridState.height
     return Math.floor(Math.min(maxW, maxH))
-  }, [gridState, screenWidth])
+  }, [gridState, canvasWidth])
 
   const offsetX = useMemo(() => {
     if (!gridState) return 0
-    const canvasWidth = screenWidth - padding * 2
     return (canvasWidth - cellSize * gridState.width) / 2
-  }, [gridState, cellSize, screenWidth])
+  }, [gridState, cellSize, canvasWidth])
+
+  const gridHeight = gridState ? cellSize * gridState.height : 0
 
   const handleArrowTap = useCallback(
     (arrowId: string) => {
-      if (status !== 'playing') return
-
-      if (selectedArrowId === arrowId) {
-        // Double tap = execute move
-        makeMove(arrowId)
-      } else {
-        selectArrow(arrowId)
-      }
+      if (status !== 'playing' || isAnimating) return
+      makeMove(arrowId)
     },
-    [selectedArrowId, status, makeMove, selectArrow]
+    [status, isAnimating, makeMove]
   )
-
-  const handleMoveSelected = useCallback(() => {
-    if (selectedArrowId && status === 'playing') {
-      makeMove(selectedArrowId)
-    }
-  }, [selectedArrowId, status, makeMove])
 
   const handleNextLevel = useCallback(() => {
     if (level) {
@@ -121,14 +115,22 @@ export default function GameScreen() {
 
       {/* Game grid */}
       <View style={styles.gridContainer}>
-        <GridCanvas gridState={gridState} selectedArrowId={selectedArrowId} padding={padding} />
-        <GridOverlay
-          gridState={gridState}
-          cellSize={cellSize}
-          offsetX={offsetX}
-          padding={padding}
-          onArrowTap={handleArrowTap}
-        />
+        <View style={{ width: canvasWidth, height: gridHeight }}>
+          <GridCanvas
+            gridState={gridState}
+            selectedArrowId={selectedArrowId}
+            errorArrowIds={errorArrowIds}
+            canvasWidth={canvasWidth}
+            cellSize={cellSize}
+            offsetX={offsetX}
+          />
+          <GridOverlay
+            gridState={gridState}
+            cellSize={cellSize}
+            offsetX={offsetX}
+            onArrowTap={handleArrowTap}
+          />
+        </View>
       </View>
 
       {/* Bottom controls */}
@@ -137,23 +139,24 @@ export default function GameScreen() {
 
         <View style={styles.controls}>
           <Pressable
-            style={[styles.controlButton, moveHistory.length === 0 && styles.controlDisabled]}
+            style={[
+              styles.controlButton,
+              (moveHistory.length === 0 || isAnimating) && styles.controlDisabled,
+            ]}
             onPress={undo}
-            disabled={moveHistory.length === 0}
+            disabled={moveHistory.length === 0 || isAnimating}
           >
             <Text style={styles.controlText}>{'\u21B6'} Undo</Text>
           </Pressable>
-          <Pressable style={styles.controlButton} onPress={restart}>
+          <Pressable
+            style={[styles.controlButton, isAnimating && styles.controlDisabled]}
+            onPress={restart}
+            disabled={isAnimating}
+          >
             <Text style={styles.controlText}>{'\u21BB'} Restart</Text>
           </Pressable>
           <HintButton onPress={useHint} />
         </View>
-
-        {selectedArrowId && status === 'playing' && (
-          <Pressable style={styles.moveButton} onPress={handleMoveSelected}>
-            <Text style={styles.moveButtonText}>Move Arrow</Text>
-          </Pressable>
-        )}
       </View>
 
       {/* Win overlay */}
@@ -241,6 +244,7 @@ const styles = StyleSheet.create({
   gridContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomBar: {
     paddingHorizontal: 20,
@@ -266,17 +270,6 @@ const styles = StyleSheet.create({
     color: TEXT_PRIMARY,
     fontSize: 14,
     fontWeight: '600',
-  },
-  moveButton: {
-    backgroundColor: ACCENT,
-    paddingHorizontal: 40,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  moveButtonText: {
-    color: TEXT_PRIMARY,
-    fontSize: 16,
-    fontWeight: '700',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
