@@ -131,44 +131,21 @@ export function useGridGestures({
           const gs = gridStateRef.current
           if (!gs || cellSize === 0) return
 
-          // RN transform [translateX, translateY, scale] with center origin
-          // applies scale first, then translate: visual = s*(p - center) + translate + center
-          // Inversion: canvas = (tap - center - translate) / scale + center
-          const s = scale.value
-          const tx = translateX.value
-          const ty = translateY.value
-          const canvasX = (e.x - contentWidth / 2 - tx) / s + contentWidth / 2
-          const canvasY = (e.y - contentHeight / 2 - ty) / s + contentHeight / 2
-
-          const col = Math.floor((canvasX - offsetX) / cellSize)
-          const row = Math.floor(canvasY / cellSize)
+          // RNGH coordinates already account for Reanimated transforms on the Animated.View,
+          // so e.x/e.y map directly to canvas-space positions — no inversion needed.
+          const col = Math.floor((e.x - offsetX) / cellSize)
+          const row = Math.floor(e.y / cellSize)
 
           if (__DEV__) {
             const hitCell =
               row >= 0 && row < gs.height && col >= 0 && col < gs.width ? gs.cells[row][col] : null
-            const ox = contentWidth / 2
-            const oy = contentHeight / 2
-            const arrowVisuals = gs.arrows.map((a) => {
-              const head = a.cells[0]
-              const cx = offsetX + head.col * cellSize + cellSize / 2
-              const cy = head.row * cellSize + cellSize / 2
-              const vx = s * (cx - ox) + tx + ox
-              const vy = s * (cy - oy) + ty + oy
-              return `${a.id}@visual(${vx.toFixed(0)},${vy.toFixed(0)})`
-            })
             console.debug(
-              '[tap] e=(%s,%s) s=%s tx=%s ty=%s → canvas=(%s,%s) cell=(%s,%s) hit=%s | arrows: %s',
+              '[tap] e=(%s,%s) cell=(%s,%s) hit=%s',
               e.x.toFixed(1),
               e.y.toFixed(1),
-              s.toFixed(2),
-              tx.toFixed(1),
-              ty.toFixed(1),
-              canvasX.toFixed(1),
-              canvasY.toFixed(1),
               col,
               row,
-              hitCell?.arrowId ?? 'none',
-              arrowVisuals.join(' ')
+              hitCell?.arrowId ?? 'none'
             )
           }
 
@@ -180,7 +157,7 @@ export function useGridGestures({
           }
         }),
     // Stable deps — gridState and onArrowTap are read from refs, not closures
-    [cellSize, offsetX, translateX, translateY, scale, contentWidth, contentHeight]
+    [cellSize, offsetX]
   )
 
   const gesture = useMemo(
