@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { removeArrow } from '../engine/grid'
 import { canMove, executeMove } from '../engine/move'
 import { solve } from '../engine/solver'
 import type { GridState, Level } from '../engine/types'
@@ -12,7 +13,11 @@ function debugLog(tag: string, ...args: unknown[]) {
 }
 
 export type GameStatus = 'idle' | 'playing' | 'won' | 'failed'
-export type AnimationType = 'valid' | 'invalid' | null
+
+export interface AnimationEntry {
+  readonly type: 'valid' | 'invalid'
+  readonly pendingFinalState: GridState | null // only for valid
+}
 
 interface GameState {
   // Data
@@ -26,20 +31,17 @@ interface GameState {
   readonly selectedArrowId: string | null
   readonly solution: readonly string[]
 
-  // Animation (smooth model — no intermediate steps)
-  readonly isAnimating: boolean
-  readonly animationType: AnimationType
-  readonly animatingArrowId: string | null
-  readonly preAnimationState: GridState | null
-  readonly pendingFinalState: GridState | null
+  // Animation (concurrent — per-arrow)
+  readonly activeAnimations: ReadonlyMap<string, AnimationEntry>
+  readonly projectedGridState: GridState | null
   readonly errorArrowIds: readonly string[]
 
   // Actions
   loadLevel: (level: Level) => void
   selectArrow: (arrowId: string | null) => void
   makeMove: (arrowId: string) => void
-  completeValidAnimation: () => void
-  completeInvalidAnimation: () => void
+  completeValidAnimation: (arrowId: string) => void
+  completeInvalidAnimation: (arrowId: string) => void
   undo: () => void
   restart: () => void
   useHint: () => string | null
@@ -58,11 +60,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   selectedArrowId: null,
   solution: [],
 
-  isAnimating: false,
-  animationType: null,
-  animatingArrowId: null,
-  preAnimationState: null,
-  pendingFinalState: null,
+  activeAnimations: new Map(),
+  projectedGridState: null,
   errorArrowIds: [],
 
   loadLevel: (level: Level) => {
@@ -76,11 +75,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       status: 'playing',
       selectedArrowId: null,
       solution: level.solution,
-      isAnimating: false,
-      animationType: null,
-      animatingArrowId: null,
-      preAnimationState: null,
-      pendingFinalState: null,
+      activeAnimations: new Map(),
+      projectedGridState: level.grid,
       errorArrowIds: [],
     })
   },
@@ -90,127 +86,132 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   makeMove: (arrowId: string) => {
-    const { gridState, status, isAnimating } = get()
-    if (!gridState || status !== 'playing' || isAnimating) {
-      debugLog('makeMove', `ignored: status=${status}, isAnimating=${isAnimating}`)
+    const { projectedGridState, status, activeAnimations } = get()
+    if (!projectedGridState || status !== 'playing') {
+      debugLog('makeMove', `ignored: status=${status}`)
       return
     }
 
-    debugLog('makeMove', `arrow=${arrowId}, arrows on board=${gridState.arrows.length}`)
+    // Don't allow a move for an arrow already animating
+    if (activeAnimations.has(arrowId)) {
+      debugLog('makeMove', `ignored: arrow ${arrowId} already animating`)
+      return
+    }
 
-    if (canMove(arrowId, gridState)) {
-      // Valid move — compute final state, let Reanimated handle the visual slide
-      const result = executeMove(arrowId, gridState)
+    // Check if this arrow exists in the projected state
+    const arrowExists = projectedGridState.arrows.some((a) => a.id === arrowId)
+    if (!arrowExists) {
+      debugLog('makeMove', `ignored: arrow ${arrowId} not in projected state`)
+      return
+    }
+
+    debugLog('makeMove', `arrow=${arrowId}, arrows on board=${projectedGridState.arrows.length}`)
+
+    if (canMove(arrowId, projectedGridState)) {
+      const result = executeMove(arrowId, projectedGridState)
       debugLog('makeMove', `valid move, arrowRemoved=${result.arrowRemoved}`)
 
-      set({
-        isAnimating: true,
-        animationType: 'valid',
-        animatingArrowId: arrowId,
-        preAnimationState: gridState,
+      const newAnimations = new Map(activeAnimations)
+      newAnimations.set(arrowId, {
+        type: 'valid',
         pendingFinalState: result.nextState,
+      })
+
+      set({
+        activeAnimations: newAnimations,
+        projectedGridState: result.nextState,
         selectedArrowId: null,
       })
     } else {
-      // Invalid move — Reanimated will do a bump + spring back
       debugLog('makeMove', `invalid move for arrow=${arrowId}`)
 
-      set({
-        isAnimating: true,
-        animationType: 'invalid',
-        animatingArrowId: arrowId,
-        preAnimationState: gridState,
+      const newAnimations = new Map(activeAnimations)
+      newAnimations.set(arrowId, {
+        type: 'invalid',
         pendingFinalState: null,
+      })
+
+      set({
+        activeAnimations: newAnimations,
         selectedArrowId: null,
       })
     }
   },
 
-  completeValidAnimation: () => {
-    const { pendingFinalState, preAnimationState, moveHistory, animatingArrowId, errorArrowIds } =
-      get()
+  completeValidAnimation: (arrowId: string) => {
+    const { activeAnimations, gridState, moveHistory, errorArrowIds } = get()
+    const entry = activeAnimations.get(arrowId)
+    if (!entry || entry.type !== 'valid' || !gridState) return
 
-    if (!pendingFinalState) return
+    const newGridState = removeArrow(gridState, arrowId)
 
-    const isWon = pendingFinalState.arrows.length === 0
-    debugLog('completeValidAnimation', `isWon=${isWon}`)
+    const newAnimations = new Map(activeAnimations)
+    newAnimations.delete(arrowId)
 
-    const updatedErrorIds = animatingArrowId
-      ? errorArrowIds.filter((id) => id !== animatingArrowId)
-      : errorArrowIds
+    const isWon = newGridState.arrows.length === 0 && newAnimations.size === 0
+    debugLog('completeValidAnimation', `arrow=${arrowId}, isWon=${isWon}`)
 
     set({
-      gridState: pendingFinalState,
-      moveHistory: preAnimationState ? [...moveHistory, preAnimationState] : moveHistory,
-      isAnimating: false,
-      animationType: null,
-      animatingArrowId: null,
-      preAnimationState: null,
-      pendingFinalState: null,
+      gridState: newGridState,
+      moveHistory: [...moveHistory, gridState],
+      activeAnimations: newAnimations,
       status: isWon ? 'won' : 'playing',
-      errorArrowIds: updatedErrorIds,
+      errorArrowIds: errorArrowIds.filter((id) => id !== arrowId),
     })
   },
 
-  completeInvalidAnimation: () => {
-    const { heartsRemaining, animatingArrowId, errorArrowIds } = get()
+  completeInvalidAnimation: (arrowId: string) => {
+    const { heartsRemaining, activeAnimations, errorArrowIds } = get()
 
     const newHearts = heartsRemaining - 1
-    debugLog('completeInvalidAnimation', `arrow=${animatingArrowId}, hearts=${newHearts}`)
+    debugLog('completeInvalidAnimation', `arrow=${arrowId}, hearts=${newHearts}`)
 
-    const updatedErrorIds = animatingArrowId
-      ? [...errorArrowIds.filter((id) => id !== animatingArrowId), animatingArrowId]
-      : errorArrowIds
+    const newAnimations = new Map(activeAnimations)
+    newAnimations.delete(arrowId)
 
     set({
-      isAnimating: false,
-      animationType: null,
-      animatingArrowId: null,
-      preAnimationState: null,
-      pendingFinalState: null,
+      activeAnimations: newAnimations,
       heartsRemaining: newHearts,
       status: newHearts <= 0 ? 'failed' : 'playing',
-      errorArrowIds: updatedErrorIds,
+      errorArrowIds: [...errorArrowIds.filter((id) => id !== arrowId), arrowId],
     })
   },
 
   undo: () => {
-    const { moveHistory, status, isAnimating } = get()
-    if (moveHistory.length === 0 || status !== 'playing' || isAnimating) return
+    const { moveHistory, status, activeAnimations } = get()
+    if (moveHistory.length === 0 || status !== 'playing' || activeAnimations.size > 0) return
 
     const previous = moveHistory[moveHistory.length - 1]
     set({
       gridState: previous,
+      projectedGridState: previous,
       moveHistory: moveHistory.slice(0, -1),
       selectedArrowId: null,
     })
   },
 
   restart: () => {
-    const { initialGridState, level, isAnimating } = get()
-    if (!initialGridState || !level || isAnimating) return
+    const { initialGridState, level, activeAnimations } = get()
+    if (!initialGridState || !level || activeAnimations.size > 0) return
 
     set({
       gridState: initialGridState,
+      projectedGridState: initialGridState,
       moveHistory: [],
       heartsRemaining: INITIAL_HEARTS,
       hintsUsed: 0,
       status: 'playing',
       selectedArrowId: null,
       errorArrowIds: [],
-      isAnimating: false,
-      animationType: null,
-      animatingArrowId: null,
-      preAnimationState: null,
-      pendingFinalState: null,
+      activeAnimations: new Map(),
     })
   },
 
   useHint: () => {
-    const { gridState, status, isAnimating } = get()
-    if (!gridState || status !== 'playing' || isAnimating) return null
+    const { projectedGridState, status, activeAnimations } = get()
+    if (!projectedGridState || status !== 'playing' || activeAnimations.size > 0) return null
 
-    const result = solve(gridState)
+    const result = solve(projectedGridState)
     if (!result.solvable || result.moves.length === 0) return null
 
     const hintArrowId = result.moves[0]

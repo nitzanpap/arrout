@@ -5,7 +5,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
-import { useArrowAnimation } from '../src/hooks/useArrowAnimation'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
@@ -25,9 +24,8 @@ export default function GameScreen() {
   const selectedArrowId = useGameStore((s) => s.selectedArrowId)
   const moveHistory = useGameStore((s) => s.moveHistory)
   const level = useGameStore((s) => s.level)
-  const isAnimating = useGameStore((s) => s.isAnimating)
+  const activeAnimations = useGameStore((s) => s.activeAnimations)
   const errorArrowIds = useGameStore((s) => s.errorArrowIds)
-  const animatingArrowId = useGameStore((s) => s.animatingArrowId)
 
   const makeMove = useGameStore((s) => s.makeMove)
   const restart = useGameStore((s) => s.restart)
@@ -53,15 +51,14 @@ export default function GameScreen() {
 
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
-  // Smooth animation via Reanimated shared values
-  const { translateX, translateY } = useArrowAnimation(cellSize)
+  const hasActiveAnimations = activeAnimations.size > 0
 
   const handleArrowTap = useCallback(
     (arrowId: string) => {
-      if (status !== 'playing' || isAnimating) return
+      if (status !== 'playing') return
       makeMove(arrowId)
     },
-    [status, isAnimating, makeMove]
+    [status, makeMove]
   )
 
   const handleNextLevel = useCallback(() => {
@@ -127,9 +124,13 @@ export default function GameScreen() {
               <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u25C0'}</Text>
             </Pressable>
             <Pressable
-              style={[styles.circleButton, dynamicStyles.buttonBg, isAnimating && styles.disabled]}
+              style={[
+                styles.circleButton,
+                dynamicStyles.buttonBg,
+                hasActiveAnimations && styles.disabled,
+              ]}
               onPress={restart}
-              disabled={isAnimating}
+              disabled={hasActiveAnimations}
             >
               <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u21BA'}</Text>
             </Pressable>
@@ -161,9 +162,6 @@ export default function GameScreen() {
             cellSize={cellSize}
             offsetX={offsetX}
             colors={colors}
-            animatingArrowId={animatingArrowId}
-            animTranslateX={translateX}
-            animTranslateY={translateY}
           />
           <GridOverlay
             gridState={gridState}

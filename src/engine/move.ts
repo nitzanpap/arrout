@@ -153,6 +153,42 @@ export function computeSlideDistanceCells(arrowId: string, state: GridState): nu
   return distance + arrow.cells.length
 }
 
+/**
+ * Computes how many empty cells lie between the arrow's head and the first
+ * blocking obstacle (another arrow's cell or the board edge).
+ * Returns 0 if the blocker is immediately adjacent to the head.
+ * Only meaningful for invalid moves — for valid moves use computeSlideDistanceCells.
+ */
+export function computeDistanceToBlocker(arrowId: string, grid: GridState): number {
+  const arrow = getArrow(grid, arrowId)
+  if (!arrow) return 0
+
+  const head = arrow.cells[0]
+  const direction = getHeadDirection(arrow)
+  const delta = directionDelta(direction)
+
+  const arrowCellKeys = new Set(arrow.cells.map((c) => `${c.row},${c.col}`))
+
+  let distance = 0
+  let row = head.row + delta.row
+  let col = head.col + delta.col
+
+  while (isInBounds(grid, { row, col })) {
+    if (!arrowCellKeys.has(`${row},${col}`)) {
+      const cell = getCell(grid, { row, col })
+      if (cell && cell.content.type !== 'empty') {
+        return distance
+      }
+      distance++
+    }
+    row += delta.row
+    col += delta.col
+  }
+
+  // No blocker found before edge — path is clear (shouldn't happen for invalid moves)
+  return distance
+}
+
 // ── Internal ────────────────────────────────────────────────────
 
 /**

@@ -1,5 +1,4 @@
 import { Canvas, Line, vec } from '@shopify/react-native-skia'
-import type { SharedValue } from 'react-native-reanimated'
 import type { GridState } from '../../engine/types'
 import type { ThemeColors } from '../../theme/colors'
 import { ArrowPath } from './ArrowPath'
@@ -12,9 +11,6 @@ interface GridCanvasProps {
   readonly cellSize: number
   readonly offsetX: number
   readonly colors: ThemeColors
-  readonly animatingArrowId: string | null
-  readonly animTranslateX: SharedValue<number>
-  readonly animTranslateY: SharedValue<number>
 }
 
 export function GridCanvas({
@@ -25,9 +21,6 @@ export function GridCanvas({
   cellSize,
   offsetX,
   colors,
-  animatingArrowId,
-  animTranslateX,
-  animTranslateY,
 }: GridCanvasProps) {
   const gridWidth = cellSize * gridState.width
   const gridHeight = cellSize * gridState.height
@@ -56,24 +49,18 @@ export function GridCanvas({
       ))}
 
       {/* Arrows */}
-      {gridState.arrows.map((arrow) => {
-        const isThisAnimating = arrow.id === animatingArrowId
-        return (
-          <ArrowPath
-            key={arrow.id}
-            arrow={arrow}
-            cellSize={cellSize}
-            offsetX={offsetX}
-            offsetY={offsetY}
-            isSelected={arrow.id === selectedArrowId}
-            isError={errorArrowIds.includes(arrow.id)}
-            colors={colors}
-            isAnimating={isThisAnimating}
-            animTranslateX={isThisAnimating ? animTranslateX : undefined}
-            animTranslateY={isThisAnimating ? animTranslateY : undefined}
-          />
-        )
-      })}
+      {gridState.arrows.map((arrow) => (
+        <ArrowPath
+          key={arrow.id}
+          arrow={arrow}
+          cellSize={cellSize}
+          offsetX={offsetX}
+          offsetY={offsetY}
+          isSelected={arrow.id === selectedArrowId}
+          isError={errorArrowIds.includes(arrow.id)}
+          colors={colors}
+        />
+      ))}
     </Canvas>
   )
 }
