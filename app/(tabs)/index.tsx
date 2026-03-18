@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router'
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { useProgressStore } from '../../src/store/progress.store'
 
 const BG = '#0F1120'

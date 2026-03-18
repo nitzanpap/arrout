@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
-import { Pressable, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'

@@ -4,6 +4,7 @@ const config: ExpoConfig = {
   name: 'Arrout',
   slug: 'arrout',
   version: '1.0.0',
+  scheme: 'arrout',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
