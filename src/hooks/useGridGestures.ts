@@ -121,6 +121,16 @@ export function useGridGestures({
         .hitSlop(HIT_SLOP)
         .runOnJS(true)
         .onEnd((e) => {
+          if (__DEV__) {
+            console.debug(
+              '[tap] raw e.x=%s e.y=%s scale=%s tx=%s ty=%s',
+              e.x.toFixed(1),
+              e.y.toFixed(1),
+              scale.value.toFixed(2),
+              translateX.value.toFixed(1),
+              translateY.value.toFixed(1)
+            )
+          }
           if (!gridState || cellSize === 0) return
 
           // e.x/e.y are relative to the Animated.View's native frame.
@@ -134,6 +144,21 @@ export function useGridGestures({
 
           const col = Math.floor((canvasX - offsetX) / cellSize)
           const row = Math.floor(canvasY / cellSize)
+
+          if (__DEV__) {
+            const cell =
+              row >= 0 && row < gridState.height && col >= 0 && col < gridState.width
+                ? gridState.cells[row][col]
+                : null
+            console.debug(
+              '[tap] canvas=(%s,%s) cell=(%s,%s) arrowId=%s',
+              canvasX.toFixed(1),
+              canvasY.toFixed(1),
+              col,
+              row,
+              cell?.arrowId ?? 'none'
+            )
+          }
 
           if (row < 0 || row >= gridState.height || col < 0 || col >= gridState.width) return
 
