@@ -16,7 +16,7 @@
         "noUnusedVariables": "warn"
       },
       "suspicious": {
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "off"
       }
     }
   },

@@ -12,7 +12,10 @@ export function Hearts({ remaining, total = 3 }: HeartsProps) {
   return (
     <View style={styles.container}>
       {Array.from({ length: total }, (_, i) => (
-        <Text key={i} style={[styles.heart, { color: i < remaining ? DANGER_COLOR : EMPTY_COLOR }]}>
+        <Text
+          key={`heart-${i}`}
+          style={[styles.heart, { color: i < remaining ? DANGER_COLOR : EMPTY_COLOR }]}
+        >
           {i < remaining ? '\u2665' : '\u2661'}
         </Text>
       ))}

@@ -28,7 +28,8 @@ export function solve(grid: GridState, maxStates = 10_000): SolveResult {
   let explored = 0
 
   while (queue.length > 0 && explored < maxStates) {
-    const current = queue.shift()!
+    const current = queue.shift()
+    if (!current) break
     explored++
 
     const hash = hashGridState(current.state)

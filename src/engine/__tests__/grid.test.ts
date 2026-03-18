@@ -78,17 +78,19 @@ describe('setCell', () => {
   test('returns new grid with updated cell', () => {
     const grid = createGrid(3, 3)
     const updated = setCell(grid, { row: 1, col: 1 }, { type: 'head', direction: 'UP' }, 'arrow-1')
-    const cell = getCell(updated, { row: 1, col: 1 })!
-    expect(cell.content).toEqual({ type: 'head', direction: 'UP' })
-    expect(cell.arrowId).toBe('arrow-1')
+    const cell = getCell(updated, { row: 1, col: 1 })
+    expect(cell).not.toBeNull()
+    expect(cell?.content).toEqual({ type: 'head', direction: 'UP' })
+    expect(cell?.arrowId).toBe('arrow-1')
   })
 
   test('does not mutate original grid', () => {
     const grid = createGrid(3, 3)
     setCell(grid, { row: 1, col: 1 }, { type: 'head', direction: 'UP' }, 'arrow-1')
-    const original = getCell(grid, { row: 1, col: 1 })!
-    expect(original.content.type).toBe('empty')
-    expect(original.arrowId).toBeNull()
+    const original = getCell(grid, { row: 1, col: 1 })
+    expect(original).not.toBeNull()
+    expect(original?.content.type).toBe('empty')
+    expect(original?.arrowId).toBeNull()
   })
 
   test('ignores out-of-bounds position', () => {
@@ -112,13 +114,15 @@ describe('placeArrow / removeArrow', () => {
     const grid = createGrid(4, 4)
     const placed = placeArrow(grid, arrow)
 
-    const headCell = getCell(placed, { row: 0, col: 0 })!
-    expect(headCell.content).toEqual({ type: 'head', direction: 'RIGHT' })
-    expect(headCell.arrowId).toBe('a1')
+    const headCell = getCell(placed, { row: 0, col: 0 })
+    expect(headCell).not.toBeNull()
+    expect(headCell?.content).toEqual({ type: 'head', direction: 'RIGHT' })
+    expect(headCell?.arrowId).toBe('a1')
 
-    const bodyCell = getCell(placed, { row: 0, col: 1 })!
-    expect(bodyCell.content).toEqual({ type: 'straight', axis: 'H' })
-    expect(bodyCell.arrowId).toBe('a1')
+    const bodyCell = getCell(placed, { row: 0, col: 1 })
+    expect(bodyCell).not.toBeNull()
+    expect(bodyCell?.content).toEqual({ type: 'straight', axis: 'H' })
+    expect(bodyCell?.arrowId).toBe('a1')
 
     expect(placed.arrows).toHaveLength(1)
     expect(placed.arrows[0].id).toBe('a1')
