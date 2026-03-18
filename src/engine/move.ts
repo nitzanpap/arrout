@@ -17,8 +17,9 @@ function debugLog(tag: string, ...args: unknown[]) {
 
 /**
  * Checks whether an arrow can fully slide off the board.
- * Simulates the snake movement step-by-step to correctly handle
- * curved arrows that might overlap with their own body.
+ * The head's straight-line path to the board edge must be free of:
+ * 1. Any cell belonging to another arrow
+ * 2. Any cell belonging to the arrow's own body (prevents confusing loop shapes)
  */
 export function canMove(arrowId: string, grid: GridState): boolean {
   const arrow = getArrow(grid, arrowId)
@@ -27,49 +28,36 @@ export function canMove(arrowId: string, grid: GridState): boolean {
     return false
   }
 
+  const head = arrow.cells[0]
   const direction = getHeadDirection(arrow)
   const delta = directionDelta(direction)
 
-  // Build set of cells occupied by other arrows
-  const otherCells = new Set<string>()
-  for (const a of grid.arrows) {
-    if (a.id === arrowId) continue
-    for (const c of a.cells) {
-      otherCells.add(`${c.row},${c.col}`)
-    }
-  }
+  // Build set of cells owned by this arrow (excluding head)
+  const ownBodyKeys = new Set(arrow.cells.slice(1).map((c) => `${c.row},${c.col}`))
 
-  // Simulate snake movement step by step
-  let positions = arrow.cells.map((c) => ({ row: c.row, col: c.col }))
+  // Walk from head to board edge — every cell must be empty
+  let checkRow = head.row + delta.row
+  let checkCol = head.col + delta.col
 
-  while (positions.some((p) => isInBounds(grid, p))) {
-    const newHead = { row: positions[0].row + delta.row, col: positions[0].col + delta.col }
-
-    // Check if head collides with another arrow's cell
-    if (isInBounds(grid, newHead) && otherCells.has(`${newHead.row},${newHead.col}`)) {
-      debugLog('canMove', `arrow ${arrowId} blocked at (${newHead.row},${newHead.col})`)
+  while (isInBounds(grid, { row: checkRow, col: checkCol })) {
+    // Own body in the exit path blocks the move (no "unfurling" through self)
+    if (ownBodyKeys.has(`${checkRow},${checkCol}`)) {
+      debugLog('canMove', `arrow ${arrowId} body blocks exit at (${checkRow},${checkCol})`)
       return false
     }
 
-    // Compute new positions (head advances, body follows)
-    const newPositions = [newHead]
-    for (let i = 1; i < positions.length; i++) {
-      newPositions.push({ row: positions[i - 1].row, col: positions[i - 1].col })
+    const cell = getCell(grid, { row: checkRow, col: checkCol })
+    if (cell && cell.content.type !== 'empty') {
+      debugLog(
+        'canMove',
+        `arrow ${arrowId} blocked at (${checkRow},${checkCol}) by ${cell.content.type}` +
+          (cell.arrowId ? ` [arrow: ${cell.arrowId}]` : '')
+      )
+      return false
     }
 
-    // Check self-overlap among on-board cells
-    const seen = new Set<string>()
-    for (const p of newPositions) {
-      if (!isInBounds(grid, p)) continue
-      const key = `${p.row},${p.col}`
-      if (seen.has(key)) {
-        debugLog('canMove', `arrow ${arrowId} self-overlap at (${p.row},${p.col})`)
-        return false
-      }
-      seen.add(key)
-    }
-
-    positions = newPositions
+    checkRow += delta.row
+    checkCol += delta.col
   }
 
   debugLog('canMove', `arrow ${arrowId} path clear, direction=${direction}`)

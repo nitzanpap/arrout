@@ -36,7 +36,8 @@
       "!**/web-build",
       "!**/ios",
       "!**/android",
-      "!**/bun.lock"
+      "!**/bun.lock",
+      "!**/bundled.json"
     ]
   }
 }

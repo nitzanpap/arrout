@@ -1,6 +1,6 @@
-import { isEmpty } from '../engine/grid'
+import { isEmpty, isInBounds } from '../engine/grid'
 import type { CurveType, Direction, GridCell, GridState, Position, Side } from '../engine/types'
-import { oppositeDirection } from '../engine/types'
+import { directionDelta, oppositeDirection } from '../engine/types'
 import type { GeneratorConfig } from './difficulty'
 import type { SeededRng } from './prng'
 
@@ -53,7 +53,38 @@ export function generateArrowShape(
   }
 
   if (cells.length < config.minArrowLength) return null
+
+  // Reject shapes where body cells cross the head's exit path
+  if (bodyBlocksExitPath(cells, headDirection, grid)) return null
+
   return cells
+}
+
+/**
+ * Returns true if any body cell (non-head) sits on the head's straight-line
+ * exit path to the board edge. Such shapes look like closed loops and
+ * create confusing gameplay where the arrow appears to pass through itself.
+ */
+function bodyBlocksExitPath(
+  cells: readonly GridCell[],
+  headDirection: Direction,
+  grid: GridState
+): boolean {
+  if (cells.length < 2) return false
+
+  const head = cells[0]
+  const delta = directionDelta(headDirection)
+  const bodyKeys = new Set(cells.slice(1).map((c) => `${c.row},${c.col}`))
+
+  let row = head.row + delta.row
+  let col = head.col + delta.col
+  while (isInBounds(grid, { row, col })) {
+    if (bodyKeys.has(`${row},${col}`)) return true
+    row += delta.row
+    col += delta.col
+  }
+
+  return false
 }
 
 // ── Internal ────────────────────────────────────────────────────
