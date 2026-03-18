@@ -3,6 +3,14 @@ import { Gesture } from 'react-native-gesture-handler'
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import type { GridState } from '../engine/types'
 
+const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
+
+function debugLog(tag: string, ...args: unknown[]) {
+  if (DEBUG) {
+    console.debug(`[gestures:${tag}]`, ...args)
+  }
+}
+
 const MIN_SCALE = 1.0
 const MAX_SCALE = 3.0
 const PAN_ACTIVATE_OFFSET = 10
@@ -136,24 +144,20 @@ export function useGridGestures({
           const col = Math.floor((e.x - offsetX) / cellSize)
           const row = Math.floor(e.y / cellSize)
 
-          if (__DEV__) {
-            const hitCell =
-              row >= 0 && row < gs.height && col >= 0 && col < gs.width ? gs.cells[row][col] : null
-            console.debug(
-              '[tap] e=(%s,%s) cell=(%s,%s) hit=%s',
-              e.x.toFixed(1),
-              e.y.toFixed(1),
-              col,
-              row,
-              hitCell?.arrowId ?? 'none'
+          if (row >= 0 && row < gs.height && col >= 0 && col < gs.width) {
+            const cell = gs.cells[row][col]
+            debugLog(
+              'tap',
+              `e=(${e.x.toFixed(1)},${e.y.toFixed(1)}) cell=(${col},${row}) arrow=${cell.arrowId ?? 'none'}`
             )
-          }
-
-          if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return
-
-          const cell = gs.cells[row][col]
-          if (cell.arrowId) {
-            onArrowTapRef.current(cell.arrowId)
+            if (cell.arrowId) {
+              onArrowTapRef.current(cell.arrowId)
+            }
+          } else {
+            debugLog(
+              'tap',
+              `e=(${e.x.toFixed(1)},${e.y.toFixed(1)}) cell=(${col},${row}) out of bounds`
+            )
           }
         }),
     // Stable deps — gridState and onArrowTap are read from refs, not closures
