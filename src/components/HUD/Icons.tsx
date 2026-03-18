@@ -1,5 +1,5 @@
-import { Canvas, Path, Skia } from "@shopify/react-native-skia"
-import { useMemo } from "react"
+import { Canvas, Path, Skia } from '@shopify/react-native-skia'
+import { useMemo } from 'react'
 
 interface IconProps {
   readonly size: number

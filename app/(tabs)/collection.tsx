@@ -69,7 +69,6 @@ export default function CollectionScreen() {
 
   const d = useMemo(
     () => ({
-      container: { backgroundColor: colors.background },
       title: { color: colors.textPrimary },
       sectionTitle: { color: colors.textPrimary },
     }),
@@ -77,7 +76,7 @@ export default function CollectionScreen() {
   )
 
   return (
-    <SafeAreaView style={[styles.container, d.container]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Collection</Text>
 

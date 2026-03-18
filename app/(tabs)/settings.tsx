@@ -89,7 +89,6 @@ export default function SettingsScreen() {
 
   const d = useMemo(
     () => ({
-      container: { backgroundColor: colors.background },
       title: { color: colors.textPrimary },
       section: { backgroundColor: colors.headerBand },
       sectionTitle: { color: colors.textSecondary },
@@ -99,7 +98,7 @@ export default function SettingsScreen() {
   )
 
   return (
-    <SafeAreaView style={[styles.container, d.container]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Settings</Text>
 

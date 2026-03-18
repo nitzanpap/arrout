@@ -37,7 +37,6 @@ export default function ChallengeScreen() {
 
   const d = useMemo(
     () => ({
-      container: { backgroundColor: colors.background },
       title: { color: colors.textPrimary },
       date: { color: colors.textSecondary },
       monthCard: { backgroundColor: colors.headerBand },
@@ -50,7 +49,7 @@ export default function ChallengeScreen() {
   )
 
   return (
-    <SafeAreaView style={[styles.container, d.container]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Daily Challenge</Text>
         <Text style={[styles.date, d.date]}>{today}</Text>
