@@ -1,7 +1,15 @@
 import { create } from 'zustand'
-import { canMove, executeMoveSteps } from '../engine/move'
+import { executeMoveSteps } from '../engine/move'
 import { solve } from '../engine/solver'
 import type { GridState, Level } from '../engine/types'
+
+const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
+
+function debugLog(tag: string, ...args: unknown[]) {
+  if (DEBUG) {
+    console.debug(`[store:${tag}]`, ...args)
+  }
+}
 
 export type GameStatus = 'idle' | 'playing' | 'won' | 'failed'
 export type AnimationType = 'valid' | 'invalid' | null
@@ -83,12 +91,21 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   makeMove: (arrowId: string) => {
     const { gridState, status, isAnimating } = get()
-    if (!gridState || status !== 'playing' || isAnimating) return
+    if (!gridState || status !== 'playing' || isAnimating) {
+      debugLog('makeMove', `ignored: status=${status}, isAnimating=${isAnimating}`)
+      return
+    }
 
-    const isValid = canMove(arrowId, gridState)
+    debugLog('makeMove', `arrow=${arrowId}, arrows on board=${gridState.arrows.length}`)
+
     const result = executeMoveSteps(arrowId, gridState)
 
-    if (isValid) {
+    debugLog(
+      'makeMove',
+      `result: success=${result.success}, steps=${result.steps.length}, heartLost=${result.heartLost}`
+    )
+
+    if (result.success) {
       // Valid move: animate forward steps, arrow slides off
       set({
         animationSteps: result.steps,
@@ -127,6 +144,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextStep = animationSteps[0]
     const remainingSteps = animationSteps.slice(1)
 
+    debugLog(
+      'advanceAnimation',
+      `type=${animationType}, remaining=${remainingSteps.length}, arrow=${animatingArrowId}`
+    )
+
     if (remainingSteps.length > 0) {
       // More steps to play
       set({
@@ -139,6 +161,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Last step — finalize
     if (animationType === 'valid') {
       const isWon = nextStep.arrows.length === 0
+      debugLog('advanceAnimation', `valid move complete, isWon=${isWon}`)
       const updatedErrorIds = animatingArrowId
         ? errorArrowIds.filter((id) => id !== animatingArrowId)
         : errorArrowIds
@@ -157,6 +180,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     } else {
       // Invalid move — bounce back complete, lose heart, mark arrow red
       const newHearts = heartsRemaining - 1
+      debugLog(
+        'advanceAnimation',
+        `invalid move complete, arrow=${animatingArrowId}, hearts=${newHearts}`
+      )
       const updatedErrorIds = animatingArrowId
         ? [...errorArrowIds.filter((id) => id !== animatingArrowId), animatingArrowId]
         : errorArrowIds
