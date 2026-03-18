@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
 import { getHeadDirection } from '../engine/arrow'
-import { computeDistanceToBlocker, executeMoveSteps } from '../engine/move'
+import { computeDistanceToBlocker } from '../engine/move'
 import type { StepPositions } from '../engine/moveSteps'
 import { extractStepPositions } from '../engine/moveSteps'
 import type { Direction } from '../engine/types'
@@ -10,7 +10,7 @@ import { directionDelta } from '../engine/types'
 import type { AnimationEntry } from '../store/game.store'
 import { useGameStore } from '../store/game.store'
 
-const DURATION_PER_STEP_MS = 100
+const DURATION_PER_STEP_MS = 80
 const SLIDE_TO_BLOCKER_MS = 200
 const SLIDE_BACK_MS = 200
 const MIN_BUMP_RATIO = 0.3
@@ -74,12 +74,10 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     const delta = directionDelta(direction)
 
     if (animEntry.type === 'valid') {
-      // Compute snake step positions for smooth per-cell animation
-      const moveResult = executeMoveSteps(arrowId, gridState)
-      const positions = extractStepPositions(arrowId, gridState, moveResult.steps)
+      // Compute snake step positions — includes off-board positions for smooth exit
+      const positions = extractStepPositions(arrowId, gridState)
 
       if (positions.length > 1) {
-        // Use snake animation
         const numSteps = positions.length - 1
 
         setStepPositions(positions)
@@ -91,18 +89,18 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
 
+        // Linear easing so the arrow doesn't decelerate as it exits the board
         progress.value = withTiming(
           numSteps,
           {
             duration: numSteps * DURATION_PER_STEP_MS,
-            easing: Easing.inOut(Easing.cubic),
+            easing: Easing.linear,
           },
           (finished) => {
             if (finished) runOnJS(onValidComplete)()
           }
         )
       } else {
-        // Fallback: no steps (shouldn't happen for valid moves)
         onValidComplete()
       }
     } else if (animEntry.type === 'invalid') {

@@ -1,5 +1,5 @@
-import { getArrow } from './grid'
 import { getHeadDirection } from './arrow'
+import { getArrow } from './grid'
 import type { GridState } from './types'
 import { directionDelta } from './types'
 
@@ -38,11 +38,7 @@ export function extractStepPositions(
 
   const isAnyOnBoard = (cells: CellPosition[]): boolean =>
     cells.some(
-      (c) =>
-        c.row >= 0 &&
-        c.row < initialState.height &&
-        c.col >= 0 &&
-        c.col < initialState.width
+      (c) => c.row >= 0 && c.row < initialState.height && c.col >= 0 && c.col < initialState.width
     )
 
   // Simulate snake movement: head moves forward, each body cell takes
