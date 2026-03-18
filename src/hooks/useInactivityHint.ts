@@ -43,9 +43,7 @@ export function useInactivityHint(
   }, [startInactivityTimer])
 
   const triggerHint = useCallback(() => {
-    if (__DEV__) console.debug('[hint:trigger] calling store useHint')
     const hintArrowId = triggerStoreHint()
-    if (__DEV__) console.debug('[hint:trigger] result:', hintArrowId)
     if (!hintArrowId) return
 
     setShowFab(false)

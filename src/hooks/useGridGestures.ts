@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Gesture } from 'react-native-gesture-handler'
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import type { GridState } from '../engine/types'
@@ -44,6 +44,13 @@ export function useGridGestures({
   const savedScale = useSharedValue(1)
   const savedTranslateX = useSharedValue(0)
   const savedTranslateY = useSharedValue(0)
+
+  // Refs for values that change during gameplay — keeps gesture objects stable
+  // so RNGH doesn't tear down and re-register native handlers on every arrow move
+  const gridStateRef = useRef(gridState)
+  gridStateRef.current = gridState
+  const onArrowTapRef = useRef(onArrowTap)
+  onArrowTapRef.current = onArrowTap
 
   const overshootX = containerWidth * PAN_OVERSHOOT_RATIO
   const overshootY = containerHeight * PAN_OVERSHOOT_RATIO
@@ -121,68 +128,51 @@ export function useGridGestures({
         .hitSlop(HIT_SLOP)
         .runOnJS(true)
         .onEnd((e) => {
-          if (__DEV__) {
-            console.debug(
-              '[tap] raw e.x=%s e.y=%s scale=%s tx=%s ty=%s',
-              e.x.toFixed(1),
-              e.y.toFixed(1),
-              scale.value.toFixed(2),
-              translateX.value.toFixed(1),
-              translateY.value.toFixed(1)
-            )
-          }
-          if (!gridState || cellSize === 0) return
+          const gs = gridStateRef.current
+          if (!gs || cellSize === 0) return
 
-          // e.x/e.y are relative to the Animated.View's native frame.
-          // Transform [tx, ty, scale] has origin at the view's center.
-          // Inversion: canvasPoint = (tapPoint - center) / scale - translate + center
+          // RN transform [translateX, translateY, scale] with center origin
+          // applies scale first, then translate: visual = s*(p - center) + translate + center
+          // Inversion: canvas = (tap - center - translate) / scale + center
           const s = scale.value
           const tx = translateX.value
           const ty = translateY.value
-          const canvasX = (e.x - contentWidth / 2) / s - tx + contentWidth / 2
-          const canvasY = (e.y - contentHeight / 2) / s - ty + contentHeight / 2
+          const canvasX = (e.x - contentWidth / 2 - tx) / s + contentWidth / 2
+          const canvasY = (e.y - contentHeight / 2 - ty) / s + contentHeight / 2
 
           const col = Math.floor((canvasX - offsetX) / cellSize)
           const row = Math.floor(canvasY / cellSize)
 
           if (__DEV__) {
-            const cell =
-              row >= 0 && row < gridState.height && col >= 0 && col < gridState.width
-                ? gridState.cells[row][col]
-                : null
+            const hitCell =
+              row >= 0 && row < gs.height && col >= 0 && col < gs.width ? gs.cells[row][col] : null
             console.debug(
-              '[tap] canvas=(%s,%s) cell=(%s,%s) arrowId=%s',
+              '[tap] e=(%s,%s) s=%s tx=%s ty=%s → canvas=(%s,%s) cell=(%s,%s) arrow=%s remaining=[%s]',
+              e.x.toFixed(1),
+              e.y.toFixed(1),
+              s.toFixed(2),
+              tx.toFixed(1),
+              ty.toFixed(1),
               canvasX.toFixed(1),
               canvasY.toFixed(1),
               col,
               row,
-              cell?.arrowId ?? 'none'
+              hitCell?.arrowId ?? 'none',
+              gs.arrows.map((a) => a.id).join(',')
             )
           }
 
-          if (row < 0 || row >= gridState.height || col < 0 || col >= gridState.width) return
+          if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return
 
-          const cell = gridState.cells[row][col]
+          const cell = gs.cells[row][col]
           if (cell.arrowId) {
-            onArrowTap(cell.arrowId)
+            onArrowTapRef.current(cell.arrowId)
           }
         }),
-    [
-      gridState,
-      cellSize,
-      offsetX,
-      translateX,
-      translateY,
-      scale,
-      onArrowTap,
-      contentWidth,
-      contentHeight,
-    ]
+    // Stable deps — gridState and onArrowTap are read from refs, not closures
+    [cellSize, offsetX, translateX, translateY, scale, contentWidth, contentHeight]
   )
 
-  // Race: tap goes ACTIVE on finger-up, pan goes ACTIVE on movement > threshold.
-  // Whichever reaches ACTIVE first wins — no delay, no conflict.
-  // Simultaneous(pinch, pan) allows concurrent pan+zoom with two fingers.
   const gesture = useMemo(
     () => Gesture.Race(Gesture.Simultaneous(pinch, pan), tap),
     [pinch, pan, tap]

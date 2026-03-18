@@ -133,8 +133,6 @@ export default function GameScreen() {
     [colors]
   )
 
-  if (__DEV__ && selectedArrowId) console.debug('[game] selectedArrowId =', selectedArrowId)
-
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, dynamicStyles.container]}>

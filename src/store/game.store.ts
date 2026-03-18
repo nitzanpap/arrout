@@ -208,22 +208,16 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   useHint: () => {
     const { projectedGridState, status, activeAnimations, solution } = get()
-    debugLog(
-      'useHint',
-      `status=${status} activeAnimations=${activeAnimations.size} solutionLength=${solution.length}`
-    )
     if (!projectedGridState || status !== 'playing' || activeAnimations.size > 0) return null
 
     const remainingIds = new Set(projectedGridState.arrows.map((a) => a.id))
     const hintArrowId = solution.find((id) => remainingIds.has(id)) ?? null
-    debugLog('useHint', `remainingIds=[${[...remainingIds]}] hintArrowId=${hintArrowId}`)
     if (!hintArrowId) return null
 
     set({
       selectedArrowId: hintArrowId,
       hintsUsed: get().hintsUsed + 1,
     })
-    debugLog('useHint', `set selectedArrowId=${hintArrowId}`)
     return hintArrowId
   },
 }))
