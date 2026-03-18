@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react'
 import { Gesture } from 'react-native-gesture-handler'
-import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import type { GridState } from '../engine/types'
 
 const MIN_SCALE = 1.0
 const MAX_SCALE = 3.0
 const PAN_ACTIVATE_OFFSET = 10
+const PAN_OVERSHOOT_RATIO = 0.25
 
 function clamp(value: number, min: number, max: number): number {
   'worklet'
@@ -16,6 +17,8 @@ interface UseGridGesturesOptions {
   readonly gridState: GridState | null
   readonly cellSize: number
   readonly offsetX: number
+  readonly contentWidth: number
+  readonly contentHeight: number
   readonly containerWidth: number
   readonly containerHeight: number
   readonly onArrowTap: (arrowId: string) => void
@@ -25,6 +28,8 @@ export function useGridGestures({
   gridState,
   cellSize,
   offsetX,
+  contentWidth,
+  contentHeight,
   containerWidth,
   containerHeight,
   onArrowTap,
@@ -37,8 +42,8 @@ export function useGridGestures({
   const savedTranslateX = useSharedValue(0)
   const savedTranslateY = useSharedValue(0)
 
-  const gridWidth = gridState ? cellSize * gridState.width : 0
-  const gridHeight = gridState ? cellSize * gridState.height : 0
+  const overshootX = containerWidth * PAN_OVERSHOOT_RATIO
+  const overshootY = containerHeight * PAN_OVERSHOOT_RATIO
 
   const pinch = useMemo(
     () =>
@@ -49,12 +54,11 @@ export function useGridGestures({
           savedTranslateY.value = translateY.value
         })
         .onUpdate((e) => {
-          const newScale = clamp(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE)
-          scale.value = newScale
+          const s = clamp(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE)
+          scale.value = s
 
-          // Clamp translation after scale change
-          const maxTx = Math.max(0, (gridWidth * newScale - containerWidth) / 2)
-          const maxTy = Math.max(0, (gridHeight * newScale - containerHeight) / 2)
+          const maxTx = Math.max(0, (contentWidth * s - containerWidth) / 2) + overshootX
+          const maxTy = Math.max(0, (contentHeight * s - containerHeight) / 2) + overshootY
           translateX.value = clamp(savedTranslateX.value, -maxTx, maxTx)
           translateY.value = clamp(savedTranslateY.value, -maxTy, maxTy)
         }),
@@ -65,10 +69,12 @@ export function useGridGestures({
       savedScale,
       savedTranslateX,
       savedTranslateY,
-      gridWidth,
-      gridHeight,
+      contentWidth,
+      contentHeight,
       containerWidth,
       containerHeight,
+      overshootX,
+      overshootY,
     ]
   )
 
@@ -84,8 +90,8 @@ export function useGridGestures({
         })
         .onUpdate((e) => {
           const s = scale.value
-          const maxTx = Math.max(0, (gridWidth * s - containerWidth) / 2)
-          const maxTy = Math.max(0, (gridHeight * s - containerHeight) / 2)
+          const maxTx = Math.max(0, (contentWidth * s - containerWidth) / 2) + overshootX
+          const maxTy = Math.max(0, (contentHeight * s - containerHeight) / 2) + overshootY
           translateX.value = clamp(savedTranslateX.value + e.translationX, -maxTx, maxTx)
           translateY.value = clamp(savedTranslateY.value + e.translationY, -maxTy, maxTy)
         }),
@@ -95,10 +101,12 @@ export function useGridGestures({
       translateY,
       savedTranslateX,
       savedTranslateY,
-      gridWidth,
-      gridHeight,
+      contentWidth,
+      contentHeight,
       containerWidth,
       containerHeight,
+      overshootX,
+      overshootY,
     ]
   )
 
@@ -110,9 +118,15 @@ export function useGridGestures({
         .onEnd((e) => {
           if (!gridState || cellSize === 0) return
 
-          // Invert the transform to get canvas-space coordinates
-          const canvasX = (e.x - translateX.value) / scale.value
-          const canvasY = (e.y - translateY.value) / scale.value
+          // e.x/e.y are relative to the gesture container (full-size wrapper).
+          // The content (Animated.View) is centered in the container.
+          // Transform [tx, ty, scale] with origin at content center.
+          // Inversion: canvasPoint = (gesturePoint - containerCenter - translate) / scale + contentCenter
+          const s = scale.value
+          const tx = translateX.value
+          const ty = translateY.value
+          const canvasX = (e.x - containerWidth / 2 - tx) / s + contentWidth / 2
+          const canvasY = (e.y - containerHeight / 2 - ty) / s + contentHeight / 2
 
           const col = Math.floor((canvasX - offsetX) / cellSize)
           const row = Math.floor(canvasY / cellSize)
@@ -124,35 +138,31 @@ export function useGridGestures({
             onArrowTap(cell.arrowId)
           }
         }),
-    [gridState, cellSize, offsetX, translateX, translateY, scale, onArrowTap]
+    [
+      gridState,
+      cellSize,
+      offsetX,
+      translateX,
+      translateY,
+      scale,
+      onArrowTap,
+      containerWidth,
+      containerHeight,
+      contentWidth,
+      contentHeight,
+    ]
   )
 
-  const doubleTap = useMemo(
-    () =>
-      Gesture.Tap()
-        .numberOfTaps(2)
-        .maxDuration(300)
-        .onEnd(() => {
-          scale.value = withSpring(1, { damping: 15 })
-          translateX.value = withSpring(0, { damping: 15 })
-          translateY.value = withSpring(0, { damping: 15 })
-        }),
-    [scale, translateX, translateY]
-  )
+  const gesture = useMemo(() => Gesture.Simultaneous(pinch, pan, tap), [pinch, pan, tap])
 
-  const gesture = useMemo(
-    () => Gesture.Race(Gesture.Simultaneous(pinch, pan), Gesture.Exclusive(doubleTap, tap)),
-    [pinch, pan, doubleTap, tap]
-  )
-
-  // Reset pan/zoom when grid dimensions change (new level)
-  const gridKey = `${gridWidth}x${gridHeight}`
-  // biome-ignore lint/correctness/useExhaustiveDependencies: gridKey intentionally triggers reset on level change
+  // Reset pan/zoom when content dimensions change (new level)
+  const contentKey = `${contentWidth}x${contentHeight}`
+  // biome-ignore lint/correctness/useExhaustiveDependencies: contentKey intentionally triggers reset on level change
   useEffect(() => {
     scale.value = 1
     translateX.value = 0
     translateY.value = 0
-  }, [gridKey, scale, translateX, translateY])
+  }, [contentKey, scale, translateX, translateY])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [

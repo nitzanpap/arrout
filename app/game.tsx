@@ -86,6 +86,8 @@ export default function GameScreen() {
     gridState,
     cellSize,
     offsetX,
+    contentWidth: canvasWidth,
+    contentHeight: gridHeight,
     containerWidth: containerLayout.width,
     containerHeight: containerLayout.height || gridHeight,
     onArrowTap: handleArrowTap,
@@ -200,17 +202,19 @@ export default function GameScreen() {
         onTouchStart={resetInactivityTimer}
       >
         <GestureDetector gesture={gesture}>
-          <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
-            <GridCanvas
-              gridState={gridState}
-              selectedArrowId={selectedArrowId}
-              errorArrowIds={errorArrowIds}
-              canvasWidth={canvasWidth}
-              cellSize={cellSize}
-              offsetX={offsetX}
-              colors={colors}
-            />
-          </Animated.View>
+          <View style={styles.gestureArea}>
+            <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
+              <GridCanvas
+                gridState={gridState}
+                selectedArrowId={selectedArrowId}
+                errorArrowIds={errorArrowIds}
+                canvasWidth={canvasWidth}
+                cellSize={cellSize}
+                offsetX={offsetX}
+                colors={colors}
+              />
+            </Animated.View>
+          </View>
         </GestureDetector>
         {showHintFab && status === 'playing' && (
           <Animated.View
@@ -335,6 +339,11 @@ const styles = StyleSheet.create({
   },
   gridClip: {
     overflow: 'hidden',
+  },
+  gestureArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
