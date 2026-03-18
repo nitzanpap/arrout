@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native'
+import { useSettingsStore } from '../store/settings.store'
 
 export interface ThemeColors {
   readonly background: string
@@ -51,7 +52,14 @@ export const darkColors: ThemeColors = {
   gridLine: 'rgba(200,206,255,0.08)',
 }
 
+export function useResolvedScheme(): 'light' | 'dark' {
+  const systemScheme = useColorScheme()
+  const theme = useSettingsStore((s) => s.theme)
+  const effective = theme === 'system' ? systemScheme : theme
+  return effective === 'light' ? 'light' : 'dark'
+}
+
 export function useThemeColors(): ThemeColors {
-  const scheme = useColorScheme()
+  const scheme = useResolvedScheme()
   return scheme === 'light' ? lightColors : darkColors
 }

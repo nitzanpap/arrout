@@ -1,6 +1,15 @@
+import Ionicons from '@expo/vector-icons/Ionicons'
 import { Tabs } from 'expo-router'
-import { Text } from 'react-native'
 import { useThemeColors } from '../../src/theme/colors'
+
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
+
+const TAB_ICONS: Record<string, IoniconsName> = {
+  Home: 'play',
+  Challenge: 'star',
+  Collection: 'trophy',
+  Settings: 'settings-sharp',
+}
 
 function TabIcon({
   label,
@@ -11,17 +20,8 @@ function TabIcon({
   focused: boolean
   colors: { accent: string; textSecondary: string }
 }) {
-  const icons: Record<string, string> = {
-    Home: '\u25B6',
-    Challenge: '\u2605',
-    Collection: '\u2606',
-    Settings: '\u2699',
-  }
-  return (
-    <Text style={{ fontSize: 20, color: focused ? colors.accent : colors.textSecondary }}>
-      {icons[label] ?? '\u25CF'}
-    </Text>
-  )
+  const name = TAB_ICONS[label] ?? 'ellipse'
+  return <Ionicons name={name} size={26} color={focused ? colors.accent : colors.textSecondary} />
 }
 
 export default function TabLayout() {

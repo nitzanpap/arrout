@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import type { ThemePreference } from '../../src/store/settings.store'
 import { useSettingsStore } from '../../src/store/settings.store'
 import { useThemeColors } from '../../src/theme/colors'
 
@@ -33,12 +34,57 @@ function ToggleRow({
   )
 }
 
+const THEME_OPTIONS: readonly { readonly value: ThemePreference; readonly label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
+function ThemeSelector({
+  value,
+  onSelect,
+  colors,
+}: {
+  value: ThemePreference
+  onSelect: (theme: ThemePreference) => void
+  colors: { accent: string; textPrimary: string; buttonBg: string; textSecondary: string }
+}) {
+  return (
+    <View style={styles.themeSelector}>
+      {THEME_OPTIONS.map((option) => {
+        const isActive = option.value === value
+        return (
+          <Pressable
+            key={option.value}
+            style={[
+              styles.themeButton,
+              { backgroundColor: isActive ? colors.accent : colors.buttonBg },
+            ]}
+            onPress={() => onSelect(option.value)}
+          >
+            <Text
+              style={[
+                styles.themeButtonText,
+                { color: isActive ? colors.textPrimary : colors.textSecondary },
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        )
+      })}
+    </View>
+  )
+}
+
 export default function SettingsScreen() {
   const colors = useThemeColors()
   const soundEnabled = useSettingsStore((s) => s.soundEnabled)
   const hapticsEnabled = useSettingsStore((s) => s.hapticsEnabled)
+  const theme = useSettingsStore((s) => s.theme)
   const toggleSound = useSettingsStore((s) => s.toggleSound)
   const toggleHaptics = useSettingsStore((s) => s.toggleHaptics)
+  const setTheme = useSettingsStore((s) => s.setTheme)
 
   const d = useMemo(
     () => ({
@@ -64,6 +110,11 @@ export default function SettingsScreen() {
             onToggle={toggleHaptics}
             colors={colors}
           />
+        </View>
+
+        <View style={[styles.section, d.section]}>
+          <Text style={[styles.sectionTitle, d.sectionTitle]}>Theme</Text>
+          <ThemeSelector value={theme} onSelect={setTheme} colors={colors} />
         </View>
 
         <View style={[styles.section, d.section]}>
@@ -126,5 +177,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingHorizontal: 16,
     paddingVertical: 4,
+  },
+  themeSelector: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  themeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  themeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 })

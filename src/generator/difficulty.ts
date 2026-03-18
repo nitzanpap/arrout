@@ -50,8 +50,43 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, GeneratorConfig> = {
 }
 
 export function difficultyForLevel(n: number): Difficulty {
-  if (n <= 50) return 'easy'
-  if (n <= 100) return 'medium'
-  if (n <= 150) return 'hard'
+  if (n <= 5) return 'easy'
+  if (n <= 20) return 'medium'
+  if (n <= 50) return 'hard'
   return 'superHard'
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return Math.round(a + (b - a) * t)
+}
+
+function lerpFloat(a: number, b: number, t: number): number {
+  return a + (b - a) * t
+}
+
+function interpolateConfig(from: GeneratorConfig, to: GeneratorConfig, t: number): GeneratorConfig {
+  return {
+    width: lerp(from.width, to.width, t),
+    height: lerp(from.height, to.height, t),
+    targetArrowCount: lerp(from.targetArrowCount, to.targetArrowCount, t),
+    minArrowLength: lerp(from.minArrowLength, to.minArrowLength, t),
+    maxArrowLength: lerp(from.maxArrowLength, to.maxArrowLength, t),
+    targetMaxFreedom: lerp(from.targetMaxFreedom, to.targetMaxFreedom, t),
+    curveProbability: lerpFloat(from.curveProbability, to.curveProbability, t),
+  }
+}
+
+/**
+ * Returns an interpolated GeneratorConfig for the given level number.
+ * Gradually ramps difficulty instead of flat 50-level tiers.
+ */
+export function configForLevel(n: number): GeneratorConfig {
+  if (n <= 5) return DIFFICULTY_CONFIGS.easy
+  if (n <= 20)
+    return interpolateConfig(DIFFICULTY_CONFIGS.easy, DIFFICULTY_CONFIGS.medium, (n - 5) / 15)
+  if (n <= 50)
+    return interpolateConfig(DIFFICULTY_CONFIGS.medium, DIFFICULTY_CONFIGS.hard, (n - 20) / 30)
+  if (n <= 100)
+    return interpolateConfig(DIFFICULTY_CONFIGS.hard, DIFFICULTY_CONFIGS.superHard, (n - 50) / 50)
+  return DIFFICULTY_CONFIGS.superHard
 }

@@ -8,6 +8,12 @@ export function migrateProgress(persistedState: unknown, version: number): unkno
   return persistedState
 }
 
-export function migrateSettings(persistedState: unknown, _version: number): unknown {
+export function migrateSettings(persistedState: unknown, version: number): unknown {
+  if (version === 1) {
+    return {
+      ...(persistedState as Record<string, unknown>),
+      theme: 'system',
+    }
+  }
   return persistedState
 }

@@ -1,11 +1,11 @@
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useColorScheme, View } from 'react-native'
-import { darkColors, lightColors } from '../src/theme/colors'
+import { View } from 'react-native'
+import { useResolvedScheme, useThemeColors } from '../src/theme/colors'
 
 export default function RootLayout() {
-  const scheme = useColorScheme()
-  const colors = scheme === 'light' ? lightColors : darkColors
+  const colors = useThemeColors()
+  const scheme = useResolvedScheme()
   const statusBarStyle = scheme === 'light' ? 'dark' : 'light'
 
   return (

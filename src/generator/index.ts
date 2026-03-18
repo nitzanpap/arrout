@@ -1,5 +1,5 @@
 import type { Difficulty, Level } from '../engine/types'
-import { DIFFICULTY_CONFIGS } from './difficulty'
+import { DIFFICULTY_CONFIGS, type GeneratorConfig } from './difficulty'
 import { createRng } from './prng'
 import { reverseConstruct } from './reverse-builder'
 
@@ -11,14 +11,23 @@ const MAX_RETRIES = 10
  * Retries with seed offsets if generation fails.
  */
 export function generateLevel(seed: number, difficulty: Difficulty): Level {
-  const config = DIFFICULTY_CONFIGS[difficulty]
+  return generateLevelFromConfig(seed, difficulty, DIFFICULTY_CONFIGS[difficulty])
+}
 
+/**
+ * Generates a level using a custom GeneratorConfig (e.g. interpolated).
+ * Deterministic: same seed + config always produces the same level.
+ */
+export function generateLevelFromConfig(
+  seed: number,
+  difficulty: Difficulty,
+  config: GeneratorConfig
+): Level {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const rng = createRng(seed + attempt)
     const result = reverseConstruct(config, rng)
 
     if (result) {
-      // Solution is the reverse of placement order
       const solution = [...result.placementOrder].reverse()
       return {
         id: seed,

@@ -1,16 +1,15 @@
 import type { Level } from '../engine/types'
-import { generateLevel } from '../generator'
-import { difficultyForLevel } from '../generator/difficulty'
+import { generateLevel, generateLevelFromConfig } from '../generator'
+import { configForLevel, difficultyForLevel } from '../generator/difficulty'
 
 /**
  * Returns a level for the given level number.
- * Levels 1-50: handcrafted static levels (will load from JSON once created)
- * Levels 51+: procedurally generated using the level number as seed
+ * Difficulty scales gradually via interpolated configs.
  */
 export function getLevel(levelNumber: number): Level {
-  // For now, all levels are generated. Static levels will be added later.
+  const config = configForLevel(levelNumber)
   const difficulty = difficultyForLevel(levelNumber)
-  return generateLevel(levelNumber, difficulty)
+  return generateLevelFromConfig(levelNumber, difficulty, config)
 }
 
 /**
