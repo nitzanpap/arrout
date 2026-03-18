@@ -138,9 +138,7 @@ export default function GameScreen() {
 
           {/* Center: level label + hearts */}
           <View style={styles.centerInfo}>
-            <Text style={[styles.levelText, dynamicStyles.levelText]}>
-              Level {levelNumber}
-            </Text>
+            <Text style={[styles.levelText, dynamicStyles.levelText]}>Level {levelNumber}</Text>
             <Hearts remaining={heartsRemaining} colors={colors} />
           </View>
 
