@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { version as appVersion } from '../../package.json'
 import type { ThemePreference } from '../../src/store/settings.store'
 import { useSettingsStore } from '../../src/store/settings.store'
 import { useThemeColors } from '../../src/theme/colors'
@@ -119,7 +120,7 @@ export default function SettingsScreen() {
 
         <View style={[styles.section, d.section]}>
           <Text style={[styles.sectionTitle, d.sectionTitle]}>About</Text>
-          <Text style={[styles.aboutText, d.aboutText]}>Arrout v1.0.0</Text>
+          <Text style={[styles.aboutText, d.aboutText]}>Arrout v{appVersion}</Text>
           <Text style={[styles.aboutText, d.aboutText]}>A minimalist arrow puzzle game</Text>
         </View>
       </View>

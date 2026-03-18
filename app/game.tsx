@@ -1,16 +1,26 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import type { LayoutChangeEvent } from 'react-native'
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
-import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
+import type { Difficulty } from '../src/engine/types'
+import { useGridGestures } from '../src/hooks/useGridGestures'
 import { useInactivityHint } from '../src/hooks/useInactivityHint'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
 import { useThemeColors } from '../src/theme/colors'
+
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
+  superHard: 'Super Hard',
+}
 
 export default function GameScreen() {
   const colors = useThemeColors()
@@ -55,7 +65,31 @@ export default function GameScreen() {
 
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
+  const [containerLayout, setContainerLayout] = useState({ width: canvasWidth, height: 0 })
+
+  const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout
+    setContainerLayout({ width, height })
+  }, [])
+
   const hasActiveAnimations = activeAnimations.size > 0
+
+  const handleArrowTap = useCallback(
+    (arrowId: string) => {
+      if (status !== 'playing') return
+      makeMove(arrowId)
+    },
+    [status, makeMove]
+  )
+
+  const { gesture, animatedStyle } = useGridGestures({
+    gridState,
+    cellSize,
+    offsetX,
+    containerWidth: containerLayout.width,
+    containerHeight: containerLayout.height || gridHeight,
+    onArrowTap: handleArrowTap,
+  })
 
   const { showHintFab, resetInactivityTimer, triggerHint } = useInactivityHint(
     status,
@@ -67,14 +101,6 @@ export default function GameScreen() {
     restart()
     resetInactivityTimer()
   }, [restart, resetInactivityTimer])
-
-  const handleArrowTap = useCallback(
-    (arrowId: string) => {
-      if (status !== 'playing') return
-      makeMove(arrowId)
-    },
-    [status, makeMove]
-  )
 
   const handleNextLevel = useCallback(() => {
     if (level) {
@@ -151,9 +177,14 @@ export default function GameScreen() {
             </Pressable>
           </View>
 
-          {/* Center: level label + hearts */}
+          {/* Center: level label + difficulty + hearts */}
           <View style={styles.centerInfo}>
             <Text style={[styles.levelText, dynamicStyles.levelText]}>Level {levelNumber}</Text>
+            {level?.difficulty && (
+              <Text style={[styles.difficultyText, { color: colors.textSecondary }]}>
+                {DIFFICULTY_LABELS[level.difficulty]}
+              </Text>
+            )}
             <Hearts remaining={heartsRemaining} colors={colors} />
           </View>
 
@@ -163,27 +194,24 @@ export default function GameScreen() {
       </View>
 
       {/* Game grid */}
-      <View style={styles.gridContainer}>
-        <View
-          style={{ width: canvasWidth, height: gridHeight }}
-          onTouchStart={resetInactivityTimer}
-        >
-          <GridCanvas
-            gridState={gridState}
-            selectedArrowId={selectedArrowId}
-            errorArrowIds={errorArrowIds}
-            canvasWidth={canvasWidth}
-            cellSize={cellSize}
-            offsetX={offsetX}
-            colors={colors}
-          />
-          <GridOverlay
-            gridState={gridState}
-            cellSize={cellSize}
-            offsetX={offsetX}
-            onArrowTap={handleArrowTap}
-          />
-        </View>
+      <View
+        style={[styles.gridContainer, styles.gridClip]}
+        onLayout={handleContainerLayout}
+        onTouchStart={resetInactivityTimer}
+      >
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
+            <GridCanvas
+              gridState={gridState}
+              selectedArrowId={selectedArrowId}
+              errorArrowIds={errorArrowIds}
+              canvasWidth={canvasWidth}
+              cellSize={cellSize}
+              offsetX={offsetX}
+              colors={colors}
+            />
+          </Animated.View>
+        </GestureDetector>
         {showHintFab && status === 'playing' && (
           <Animated.View
             entering={FadeIn.duration(300)}
@@ -288,6 +316,10 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.4,
   },
+  difficultyText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   centerInfo: {
     alignItems: 'center',
     gap: 4,
@@ -300,6 +332,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gridClip: {
+    overflow: 'hidden',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

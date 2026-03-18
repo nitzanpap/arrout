@@ -1,4 +1,4 @@
-import { Canvas, Line, vec } from '@shopify/react-native-skia'
+import { Canvas, Circle } from '@shopify/react-native-skia'
 import type { GridState } from '../../engine/types'
 import type { ThemeColors } from '../../theme/colors'
 import { ArrowPath } from './ArrowPath'
@@ -22,31 +22,25 @@ export function GridCanvas({
   offsetX,
   colors,
 }: GridCanvasProps) {
-  const gridWidth = cellSize * gridState.width
   const gridHeight = cellSize * gridState.height
   const offsetY = 0
 
   return (
     <Canvas style={{ width: canvasWidth, height: gridHeight }}>
-      {/* Grid lines */}
-      {Array.from({ length: gridState.width + 1 }, (_, i) => (
-        <Line
-          key={`v${i}`}
-          p1={vec(offsetX + i * cellSize, offsetY)}
-          p2={vec(offsetX + i * cellSize, offsetY + gridHeight)}
-          color={colors.gridLine}
-          strokeWidth={1}
-        />
-      ))}
-      {Array.from({ length: gridState.height + 1 }, (_, i) => (
-        <Line
-          key={`h${i}`}
-          p1={vec(offsetX, offsetY + i * cellSize)}
-          p2={vec(offsetX + gridWidth, offsetY + i * cellSize)}
-          color={colors.gridLine}
-          strokeWidth={1}
-        />
-      ))}
+      {/* Grid dots at cell centers */}
+      {Array.from({ length: gridState.width * gridState.height }, (_, idx) => {
+        const col = idx % gridState.width
+        const row = Math.floor(idx / gridState.width)
+        return (
+          <Circle
+            key={`d${idx}`}
+            cx={offsetX + col * cellSize + cellSize / 2}
+            cy={offsetY + row * cellSize + cellSize / 2}
+            r={1.5}
+            color={colors.gridLine}
+          />
+        )
+      })}
 
       {/* Arrows */}
       {gridState.arrows.map((arrow) => (

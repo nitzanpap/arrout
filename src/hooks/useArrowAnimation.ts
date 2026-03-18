@@ -7,9 +7,9 @@ import { extractPartialTrack, extractTrack } from '../engine/moveSteps'
 import type { AnimationEntry } from '../store/game.store'
 import { useGameStore } from '../store/game.store'
 
-const DURATION_PER_STEP_MS = 60
-const SLIDE_TO_BLOCKER_MS = 200
-const SLIDE_BACK_MS = 200
+const DURATION_PER_STEP_MS = 45
+const SLIDE_TO_BLOCKER_MS = 150
+const SLIDE_BACK_MS = 150
 const MIN_BUMP_RATIO = 0.3
 
 export interface ArrowAnimationState {
