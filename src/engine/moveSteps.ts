@@ -68,3 +68,40 @@ export function extractTrack(arrowId: string, initialState: GridState): ArrowTra
 
   return { positions: tailToHead, arrowLength }
 }
+
+/**
+ * Builds a partial track for an invalid move's bounce animation.
+ * Same as extractTrack but only extends `maxSteps` positions beyond the head,
+ * so the snake animation follows the arrow's curved path up to the blocker
+ * and then reverses.
+ */
+export function extractPartialTrack(
+  arrowId: string,
+  gridState: GridState,
+  maxSteps: number
+): ArrowTrack | null {
+  const arrow = getArrow(gridState, arrowId)
+  if (!arrow || arrow.cells.length === 0) return null
+
+  const direction = getHeadDirection(arrow)
+  const delta = directionDelta(direction)
+  const arrowLength = arrow.cells.length
+
+  const tailToHead: CellPosition[] = [...arrow.cells].reverse().map((c) => ({
+    row: c.row,
+    col: c.col,
+  }))
+
+  // Extend beyond head by enough positions for the animation to reach maxSteps
+  const head = tailToHead[arrowLength - 1]
+  const extensionCount = Math.ceil(maxSteps) + 1
+
+  for (let i = 1; i <= extensionCount; i++) {
+    tailToHead.push({
+      row: head.row + delta.row * i,
+      col: head.col + delta.col * i,
+    })
+  }
+
+  return { positions: tailToHead, arrowLength }
+}

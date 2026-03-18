@@ -1,12 +1,9 @@
 import * as Haptics from 'expo-haptics'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
-import { getHeadDirection } from '../engine/arrow'
 import { computeDistanceToBlocker } from '../engine/move'
 import type { ArrowTrack } from '../engine/moveSteps'
-import { extractTrack } from '../engine/moveSteps'
-import type { Direction } from '../engine/types'
-import { directionDelta } from '../engine/types'
+import { extractPartialTrack, extractTrack } from '../engine/moveSteps'
 import type { AnimationEntry } from '../store/game.store'
 import { useGameStore } from '../store/game.store'
 
@@ -51,6 +48,8 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
 
   const onInvalidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    setIsTrackAnimating(false)
+    setTrack(null)
     completeInvalidAnimation(arrowId)
   }, [completeInvalidAnimation, arrowId])
 
@@ -69,9 +68,6 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
 
     const arrow = gridState.arrows.find((a) => a.id === arrowId)
     if (!arrow) return
-
-    const direction = getHeadDirection(arrow)
-    const delta = directionDelta(direction)
 
     if (animEntry.type === 'valid') {
       const arrowTrack = extractTrack(arrowId, gridState)
@@ -103,21 +99,35 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
       }
     } else if (animEntry.type === 'invalid') {
       const blockerCells = computeDistanceToBlocker(arrowId, gridState)
-      const blockerPx = blockerCells > 0 ? blockerCells * cellSize : cellSize * MIN_BUMP_RATIO
-      const targetX = delta.col * blockerPx
-      const targetY = delta.row * blockerPx
+      const maxProgress = blockerCells > 0 ? blockerCells : MIN_BUMP_RATIO
 
-      translateX.value = 0
-      translateY.value = 0
+      const partialTrack = extractPartialTrack(arrowId, gridState, maxProgress)
 
-      startSlideToBlockerAndBack(
-        translateX,
-        translateY,
-        targetX,
-        targetY,
-        direction,
-        onInvalidComplete
-      )
+      if (partialTrack) {
+        setTrack(partialTrack)
+        setIsTrackAnimating(true)
+
+        progress.value = 0
+        translateX.value = 0
+        translateY.value = 0
+
+        // Snake forward to blocker, then reverse back to origin
+        progress.value = withSequence(
+          withTiming(maxProgress, {
+            duration: SLIDE_TO_BLOCKER_MS,
+            easing: Easing.out(Easing.cubic),
+          }),
+          withTiming(
+            0,
+            { duration: SLIDE_BACK_MS, easing: Easing.in(Easing.cubic) },
+            (finished) => {
+              if (finished) runOnJS(onInvalidComplete)()
+            }
+          )
+        )
+      } else {
+        onInvalidComplete()
+      }
     }
   }, [
     animEntry,
@@ -132,37 +142,4 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
   ])
 
   return { translateX, translateY, progress, track, isTrackAnimating }
-}
-
-function startSlideToBlockerAndBack(
-  translateX: { value: number },
-  translateY: { value: number },
-  targetX: number,
-  targetY: number,
-  direction: Direction,
-  onComplete: () => void
-) {
-  const isHorizontal = direction === 'LEFT' || direction === 'RIGHT'
-
-  if (isHorizontal) {
-    translateX.value = withSequence(
-      withTiming(targetX, {
-        duration: SLIDE_TO_BLOCKER_MS,
-        easing: Easing.out(Easing.cubic),
-      }),
-      withTiming(0, { duration: SLIDE_BACK_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(onComplete)()
-      })
-    )
-  } else {
-    translateY.value = withSequence(
-      withTiming(targetY, {
-        duration: SLIDE_TO_BLOCKER_MS,
-        easing: Easing.out(Easing.cubic),
-      }),
-      withTiming(0, { duration: SLIDE_BACK_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(onComplete)()
-      })
-    )
-  }
 }
