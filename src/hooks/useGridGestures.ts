@@ -146,8 +146,18 @@ export function useGridGestures({
           if (__DEV__) {
             const hitCell =
               row >= 0 && row < gs.height && col >= 0 && col < gs.width ? gs.cells[row][col] : null
+            const ox = contentWidth / 2
+            const oy = contentHeight / 2
+            const arrowVisuals = gs.arrows.map((a) => {
+              const head = a.cells[0]
+              const cx = offsetX + head.col * cellSize + cellSize / 2
+              const cy = head.row * cellSize + cellSize / 2
+              const vx = s * (cx - ox) + tx + ox
+              const vy = s * (cy - oy) + ty + oy
+              return `${a.id}@visual(${vx.toFixed(0)},${vy.toFixed(0)})`
+            })
             console.debug(
-              '[tap] e=(%s,%s) s=%s tx=%s ty=%s → canvas=(%s,%s) cell=(%s,%s) arrow=%s remaining=[%s]',
+              '[tap] e=(%s,%s) s=%s tx=%s ty=%s → canvas=(%s,%s) cell=(%s,%s) hit=%s | arrows: %s',
               e.x.toFixed(1),
               e.y.toFixed(1),
               s.toFixed(2),
@@ -158,7 +168,7 @@ export function useGridGestures({
               col,
               row,
               hitCell?.arrowId ?? 'none',
-              gs.arrows.map((a) => a.id).join(',')
+              arrowVisuals.join(' ')
             )
           }
 
