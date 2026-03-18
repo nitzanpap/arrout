@@ -29,7 +29,7 @@ const config: ExpoConfig = {
     favicon: './assets/favicon.png',
     bundler: 'metro',
   },
-  plugins: ['expo-router', 'react-native-reanimated'],
+  plugins: ['expo-router'],
   experiments: {
     typedRoutes: true,
   },

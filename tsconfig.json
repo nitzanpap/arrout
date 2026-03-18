@@ -4,13 +4,33 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@components/*": ["src/components/*"],
-      "@engine/*": ["src/engine/*"],
-      "@generator/*": ["src/generator/*"],
-      "@store/*": ["src/store/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@levels/*": ["src/levels/*"],
-      "@persistence/*": ["src/persistence/*"]
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@engine/*": [
+        "src/engine/*"
+      ],
+      "@generator/*": [
+        "src/generator/*"
+      ],
+      "@store/*": [
+        "src/store/*"
+      ],
+      "@hooks/*": [
+        "src/hooks/*"
+      ],
+      "@levels/*": [
+        "src/levels/*"
+      ],
+      "@persistence/*": [
+        "src/persistence/*"
+      ]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }
