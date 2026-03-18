@@ -34,17 +34,16 @@ export function useArrowAnimation(cellSize: number) {
 
   const onValidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    translateX.value = 0
-    translateY.value = 0
+    // Don't reset translateX/Y here — the arrow is still in gridState for one frame.
+    // completeValidAnimation removes the arrow, so stale translation doesn't matter.
     completeValidAnimation()
-  }, [completeValidAnimation, translateX, translateY])
+  }, [completeValidAnimation])
 
   const onInvalidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-    translateX.value = 0
-    translateY.value = 0
+    // withSpring already returns to 0, no reset needed
     completeInvalidAnimation()
-  }, [completeInvalidAnimation, translateX, translateY])
+  }, [completeInvalidAnimation])
 
   useEffect(() => {
     if (!isAnimating || !animatingArrowId || !gridState || cellSize === 0) {
