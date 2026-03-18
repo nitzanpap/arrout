@@ -90,7 +90,23 @@ When an arrow moves:
 
 ### 2.6 Valid Move Condition
 
-An arrow may begin moving if and only if the cell immediately ahead of its head is **empty or the board edge**.
+An arrow may begin moving if and only if **every cell from its head to the board edge** (in the head's pointing direction) is either empty or part of the arrow itself. Cells occupied by the arrow's own body are excluded from the check because they vacate as the snake slides forward — but cells occupied by other arrows block the move entirely.
+
+```
+function canMove(arrowId, grid):
+  arrow = getArrow(grid, arrowId)
+  direction = arrow.head.direction
+  arrowCells = Set(arrow.cells)
+
+  pos = head + delta(direction)
+  while inBounds(pos):
+    if pos not in arrowCells:
+      if grid[pos] is not empty:
+        return false     // blocked by another arrow
+    pos = pos + delta(direction)
+
+  return true            // clear path to edge
+```
 
 ### 2.7 Deadlock Rules
 

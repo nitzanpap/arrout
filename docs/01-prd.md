@@ -95,12 +95,14 @@ An arrow moves **like a snake**, not as a rigid shape:
 
 ### Valid Move Condition
 
-An arrow can begin moving if and only if the cell immediately ahead of its head is empty or is the board edge. Once moving, the snake mechanic ensures the path is naturally cleared by the tail vacating cells — the only blockers are other arrows' cells ahead of the head.
+An arrow can begin moving if and only if **every cell** from its head to the board edge (in the head's pointing direction) is either empty or part of the arrow itself. This ensures the full exit path is clear before movement begins — if any other arrow occupies a cell along that path, the move is invalid.
 
 ### Heart System
 
 - Each level begins with 3 hearts
 - A heart is lost each time the player attempts an invalid move (blocked path)
+- On invalid move, the arrow briefly bumps forward, bounces back to its original position, and turns **red** (`#FF4A6A`) to visually indicate the error
+- The red state clears on the arrow's next successful move
 - Hearts reset on level restart
 - Hearts are **local to a level** — there is no global energy system
 
@@ -130,7 +132,8 @@ A head facing a body is **not** a deadlock — the body's arrow may move out of 
 
 | Priority | Story |
 |---|---|
-| P1 | As a player, I want to slide arrows off the grid so that I can solve the puzzle. |
+| P1 | As a player, I want to tap an arrow to slide it off the grid so that I can solve the puzzle with a single touch. |
+| P1 | As a player, I want to see arrows animate as they slide off the board (or bounce back on invalid moves) so I understand what happened. |
 | P1 | As a player, I want to clearly see which arrows can move and which are blocked so I can plan ahead. |
 | P1 | As a player, I want to undo my last move so I can recover from a mistake without restarting. |
 | P1 | As a player, I want to restart a level so I can try a different approach. |
@@ -230,11 +233,22 @@ Each tier unlocks a progressively more elaborate badge visible in the Collection
 
 | Event | Animation | Duration |
 |---|---|---|
-| Arrow slide (valid) | Snake step-by-step translate, fade on exit | 200–250ms per step |
-| Arrow blocked (invalid) | Short nudge + spring back | 150ms |
+| Arrow slide (valid) | Step-by-step grid state updates — arrow slides forward cell by cell until it exits | 60–300ms per step (adaptive) |
+| Arrow blocked (invalid) | Arrow stays in place, turns red (`#FF4A6A`). Red clears on next successful move. | Instant color change |
 | Heart lost | Red pulse on heart icon | 300ms |
 | Level complete | Cells fade out, score reveal | 600ms |
 | Hint active | Pulsing glow on target arrow | Loop until dismissed |
+
+Animation is driven by a `useAnimationPlayer` hook that watches an animation step queue in the store. Each step updates the grid state on a timer, producing a smooth visual slide. Input is blocked during animation playback.
+
+### Interaction Model
+
+Tapping any part of an arrow immediately triggers its move — no selection step, no swipe detection:
+
+1. Player taps an arrow
+2. If the path is clear → arrow animates sliding off the board
+3. If the path is blocked → arrow turns red, a heart is lost, haptic error feedback plays
+4. The red state persists until the arrow's next successful move
 
 ### Screen Structure
 

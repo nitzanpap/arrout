@@ -29,7 +29,7 @@
 | State management | Zustand | Minimal boilerplate, easy persistence middleware |
 | Persistence | AsyncStorage + Zustand persist | Built-in, no server required |
 | Navigation | Expo Router | File-based routing; wraps React Navigation under the hood |
-| Animation | Reanimated 3 | Native-thread animations for smooth 60fps |
+| Animation | State-driven (setTimeout + Zustand) | Step-by-step grid state updates with expo-haptics feedback |
 | Canvas / rendering | React Native Skia | Hardware-accelerated 2D for the grid canvas |
 | Linting & formatting | Biome | Single fast tool replacing ESLint + Prettier |
 | Testing | Bun test + React Native Testing Library | Built-in test runner for engine; RNTL for components |
@@ -91,8 +91,7 @@ src/
 │   └── ui/                   # Generic reusable components
 │
 ├── hooks/
-│   ├── useGameGestures.ts    # Pan gesture → arrow selection + move trigger
-│   ├── useArrowAnimation.ts  # Drives the snake animation for a moving arrow
+│   ├── useAnimationPlayer.ts # Drives step-by-step animation playback from store queue
 │   └── useLevelLoader.ts     # Loads/generates level, initializes game store
 │
 └── persistence/
@@ -150,50 +149,62 @@ export interface MoveResult {
   arrowRemoved: boolean
   heartLost: boolean
 }
+
+export interface MoveStepsResult {
+  readonly success: boolean
+  readonly steps: readonly GridState[]   // each intermediate snake position
+  readonly heartLost: boolean
+  readonly arrowId: string
+}
 ```
 
 ### 3.2 Move Execution (`engine/move.ts`)
 
-The snake mechanic is the most important and subtle piece of the engine.
+The snake mechanic is the most important and subtle piece of the engine. The module includes debug logging gated behind `__DEV__` for runtime diagnostics.
 
 ```typescript
-export function canMove(arrow: Arrow, grid: GridState): boolean {
+// Full-path validation — checks every cell from head to board edge
+export function canMove(arrowId: string, grid: GridState): boolean {
+  const arrow = getArrow(grid, arrowId)
   const head = arrow.cells[0]
-  const ahead = cellAhead(head, grid)
-  return ahead === null || ahead.content.type === 'empty'
-  // null = board edge = valid (arrow will exit)
-}
+  const direction = getHeadDirection(arrow)
+  const arrowCellKeys = new Set(arrow.cells.map(c => `${c.row},${c.col}`))
 
-export function executeMove(arrow: Arrow, state: GridState): GridState {
-  // Returns new immutable state — never mutates
-  let current = state
-
-  // Step the snake forward until the tail exits the board
-  while (arrowStillOnBoard(arrow, current)) {
-    current = stepSnakeForward(arrow.id, current)
+  let pos = head + delta(direction)
+  while (isInBounds(grid, pos)) {
+    if (!arrowCellKeys.has(posKey) && cell is not empty)
+      return false   // blocked by another arrow
+    pos = pos + delta(direction)
   }
-
-  // Remove arrow from state
-  return removeArrow(arrow.id, current)
+  return true
 }
 
-function stepSnakeForward(arrowId: string, state: GridState): GridState {
-  const arrow = getArrow(arrowId, state)
-  const head = arrow.cells[0]
-  const nextHeadPos = positionAhead(head)
+// Returns intermediate grid states for each step (used by animation system)
+export function executeMoveSteps(arrowId: string, state: GridState): MoveStepsResult {
+  if (!canMove(arrowId, state))
+    return { success: false, steps: [state], heartLost: true, arrowId }
 
-  // Build new cell list: new head pos + each segment moves into prev segment's pos
-  const newCells = [
-    { ...head, x: nextHeadPos.x, y: nextHeadPos.y },
-    ...arrow.cells.slice(0, -1).map((cell, i) => ({
-      ...cell,
-      x: arrow.cells[i].x,      // each segment takes prev segment's position
-      y: arrow.cells[i].y,
-    }))
-    // tail segment (last cell) is dropped — it has moved off where it was
-  ]
+  const steps: GridState[] = []
+  // Step the snake forward, collecting each intermediate state
+  while (arrow still on board) {
+    current = stepSnakeForward(arrow, direction, current)
+    steps.push(current)
+  }
+  return { success: true, steps, heartLost: false, arrowId }
+}
 
-  return updateArrowCells(arrowId, newCells, state)
+// Convenience wrapper — returns final state only
+export function executeMove(arrowId: string, state: GridState): MoveResult {
+  const result = executeMoveSteps(arrowId, state)
+  return { success, nextState: lastStep, arrowRemoved: success, heartLost }
+}
+
+function stepSnakeForward(arrow: Arrow, direction: Direction, state: GridState): GridState {
+  // 1. Remove arrow from grid
+  // 2. Head advances one cell in direction
+  // 3. Each body segment moves to where the segment ahead was
+  // 4. Filter to on-board cells only (head/body may exit)
+  // 5. Place updated arrow back on grid (or remove if fully exited)
 }
 ```
 
@@ -281,30 +292,44 @@ Manages the active puzzle session. Resets entirely when a new level loads.
 ```typescript
 interface GameState {
   // Data
-  level: Level
-  gridState: GridState
-  moveHistory: GridState[]        // stack for undo
+  level: Level | null
+  gridState: GridState | null
+  initialGridState: GridState | null
+  moveHistory: readonly GridState[]        // stack for undo
   heartsRemaining: number
   hintsUsed: number
   status: 'idle' | 'playing' | 'won' | 'failed'
   selectedArrowId: string | null
+  solution: readonly string[]
+
+  // Animation
+  animationSteps: readonly GridState[]     // queued intermediate states for playback
+  isAnimating: boolean                     // blocks input during animation
+  animationType: 'valid' | 'invalid' | null
+  animatingArrowId: string | null
+  preAnimationState: GridState | null      // state before animation started
+  errorArrowIds: readonly string[]         // arrows colored red after invalid move
 
   // Actions
   loadLevel: (level: Level) => void
   selectArrow: (arrowId: string | null) => void
   makeMove: (arrowId: string) => void
+  advanceAnimation: () => void             // plays next animation step
+  completeAnimation: () => void            // jumps to final state
   undo: () => void
   restart: () => void
-  useHint: () => string | null     // returns arrowId to highlight, or null
+  useHint: () => string | null
 }
 ```
 
 Key behaviors:
 
-- `makeMove` calls `canMove` — if false, decrements hearts and emits a blocked event for the animation system
-- `makeMove` calls `executeMove` — pushes current state to `moveHistory` before applying
-- `undo` pops `moveHistory` and restores previous `gridState`
-- When `status` becomes `'won'`, the store emits a win event and updates `progress.store`
+- `makeMove` calls `executeMoveSteps` — if valid, queues animation steps and sets `isAnimating: true`; if invalid, queues a single bounce-back step
+- `advanceAnimation` pops the next step from the queue and sets it as `gridState`. On the final step: if valid, adds to `moveHistory` and checks win; if invalid, decrements hearts and adds arrow to `errorArrowIds`
+- The `useAnimationPlayer` hook drives `advanceAnimation` on a timer (60–300ms per step) with haptic feedback
+- `undo` and `restart` are blocked while `isAnimating` is true
+- `errorArrowIds` tracks arrows that should render red — cleared when the arrow's next move succeeds
+- Debug logging (gated behind `__DEV__`) traces `makeMove`, `advanceAnimation`, and animation completion
 
 ### 5.2 Progress Store (`store/progress.store.ts`)
 
@@ -459,22 +484,26 @@ The game screen is a modal route pushed on top of the tab navigator, keeping the
 
 The puzzle grid is rendered as a single `<Canvas>` (React Native Skia). No individual View components per cell — this is critical for performance on large Super Hard grids (18×18 = 324 cells).
 
+The canvas and touch overlay are wrapped in a fixed-size `View` container (`width: canvasWidth, height: gridHeight`) that is centered in the screen via `alignItems: 'center'` + `justifyContent: 'center'`. Layout dimensions (`canvasWidth`, `cellSize`, `offsetX`) are computed in `game.tsx` and passed as props — the canvas does not compute its own sizing.
+
 ```tsx
-// GridCanvas.tsx
-export function GridCanvas({ gridState, animatingArrows }: Props) {
-  const { width, height } = useGridDimensions(gridState)
-
+// GridCanvas.tsx — accepts layout props and error state
+export function GridCanvas({
+  gridState, selectedArrowId, errorArrowIds,
+  canvasWidth, cellSize, offsetX,
+}: GridCanvasProps) {
   return (
-    <Canvas style={{ width, height }}>
-      {/* Draw empty grid lines (optional, subtle) */}
-      <GridLines gridState={gridState} />
-
-      {/* Draw each arrow as a Skia path */}
+    <Canvas style={{ width: canvasWidth, height: gridHeight }}>
+      <GridLines ... />
       {gridState.arrows.map(arrow => (
         <ArrowPath
           key={arrow.id}
           arrow={arrow}
-          animState={animatingArrows[arrow.id]}
+          cellSize={cellSize}
+          offsetX={offsetX}
+          offsetY={0}
+          isSelected={arrow.id === selectedArrowId}
+          isError={errorArrowIds.includes(arrow.id)}
         />
       ))}
     </Canvas>
@@ -482,60 +511,55 @@ export function GridCanvas({ gridState, animatingArrows }: Props) {
 }
 ```
 
-### 9.2 Arrow Animation
+`ArrowPath` accepts an `isError` prop — when true, overrides the arrow color with `#FF4A6A` (danger red).
 
-When `makeMove` is called, the game store applies the final state immediately (for logic), and a parallel animation plays the snake movement visually using Reanimated shared values:
+### 9.2 Animation System
+
+Animation is **state-driven**, not visual-only. When `makeMove` is called, the store queues intermediate `GridState` snapshots (from `executeMoveSteps`) rather than applying the final state instantly. A `useAnimationPlayer` hook drives playback:
 
 ```typescript
-// useArrowAnimation.ts
-export function useArrowAnimation(arrow: Arrow, onComplete: () => void) {
-  const progress = useSharedValue(0)
+// useAnimationPlayer.ts (~40 lines)
+export function useAnimationPlayer() {
+  const isAnimating = useGameStore(s => s.isAnimating)
+  const stepsCount = useGameStore(s => s.animationSteps.length)
+  const advanceAnimation = useGameStore(s => s.advanceAnimation)
 
-  const startAnimation = () => {
-    progress.value = withTiming(1, {
-      duration: STEP_DURATION_MS * arrow.cells.length,
-      easing: Easing.linear,
-    }, onComplete)
-  }
-
-  // Derived animated path: interpolates arrow cell positions
-  // from start positions to exit positions based on progress value
-  const animatedPath = useDerivedValue(() => {
-    return interpolateArrowPath(arrow, progress.value)
-  })
-
-  return { animatedPath, startAnimation }
+  useEffect(() => {
+    if (!isAnimating || stepsCount === 0) return
+    const stepMs = Math.max(60, Math.floor(300 / stepsCount))
+    const timer = setTimeout(() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      advanceAnimation()
+    }, stepMs)
+    return () => clearTimeout(timer)
+  }, [isAnimating, stepsCount, advanceAnimation])
 }
 ```
 
-The animation is purely visual — the game logic state has already been updated. If the animation is interrupted (player taps another arrow), the visual snaps to the logical state.
+Each `advanceAnimation()` call pops the next step, sets it as `gridState`, and re-renders. On the final step, the store finalizes the move (update history, check win/fail, update hearts, set error state). This approach keeps animation and game logic unified — no separate visual state to reconcile.
 
 ### 9.3 Touch Handling
 
-Touch is handled by a transparent overlay above the canvas. A pan gesture recognizer detects:
-
-1. **Tap** — identify which arrow was tapped (hit test against arrow cell bounds), select it
-2. **Swipe** — if a selected arrow exists and swipe direction matches the arrow's direction, trigger `makeMove`
+Touch is handled by a `Pressable` overlay (`GridOverlay`) that covers the canvas using `StyleSheet.absoluteFillObject`. A single tap triggers a move immediately — **no selection step, no swipe detection**.
 
 ```typescript
-// useGameGestures.ts
-export function useGameGestures(gridState: GridState, onMove: (id: string) => void) {
-  const gesture = Gesture.Pan()
-    .onStart(e => {
-      const arrow = hitTestArrow(e.x, e.y, gridState)
-      if (arrow) selectArrow(arrow.id)
-    })
-    .onEnd(e => {
-      const selected = useGameStore.getState().selectedArrowId
-      if (!selected) return
-      const direction = swipeDirection(e.velocityX, e.velocityY)
-      const arrow = getArrow(selected, gridState)
-      if (direction === arrow.direction) onMove(selected)
-    })
+// GridOverlay.tsx
+function handlePress(event) {
+  const { locationX, locationY } = event.nativeEvent
+  const col = Math.floor((locationX - offsetX) / cellSize)
+  const row = Math.floor(locationY / cellSize)
+  const cell = gridState.cells[row][col]
+  if (cell.arrowId) onArrowTap(cell.arrowId)
+}
 
-  return gesture
+// game.tsx
+const handleArrowTap = (arrowId: string) => {
+  if (status !== 'playing' || isAnimating) return
+  makeMove(arrowId)
 }
 ```
+
+Taps are ignored while `isAnimating` is true, preventing input during animation playback.
 
 ---
 
@@ -559,8 +583,9 @@ bun test tests/engine
 
 Key test cases:
 - Arrow exits cleanly with no obstacles
-- Arrow blocked by another arrow's body
-- Arrow blocked mid-snake-path (head reaches obstacle during multi-step exit)
+- Arrow blocked by another arrow's body anywhere along its full exit path
+- Full-path validation — `canMove` checks every cell to the board edge, not just one cell ahead
+- `executeMoveSteps` returns correct intermediate states for animation
 - Facing heads detected correctly
 - Circular dependency detected (A→B→C→A)
 - Solver finds solution for known handcrafted levels
