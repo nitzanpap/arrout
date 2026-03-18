@@ -1,7 +1,13 @@
+import * as Haptics from 'expo-haptics'
 import { useRouter } from 'expo-router'
-import { useMemo } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useMemo, useRef } from 'react'
+import { type GestureResponderEvent, Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSharedValue } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import {
+  ArrowFieldBackground,
+  type RippleEvent,
+} from '../../src/components/Home/ArrowFieldBackground'
 import { difficultyForLevel } from '../../src/generator/difficulty'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
@@ -19,6 +25,22 @@ export default function HomeScreen() {
   const currentLevel = useProgressStore((s) => s.currentLevel)
   const streak = useProgressStore((s) => s.streak)
 
+  const ripple = useSharedValue<RippleEvent>({ x: 0, y: 0, id: 0 })
+  const rippleIdRef = useRef(0)
+
+  const handleTouch = useCallback(
+    (e: GestureResponderEvent) => {
+      rippleIdRef.current += 1
+      ripple.value = {
+        x: e.nativeEvent.pageX,
+        y: e.nativeEvent.pageY,
+        id: rippleIdRef.current,
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    },
+    [ripple]
+  )
+
   const dynamicStyles = useMemo(
     () => ({
       container: { backgroundColor: colors.background },
@@ -35,43 +57,51 @@ export default function HomeScreen() {
   )
 
   return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      <View style={styles.content}>
-        <Text style={[styles.logo, dynamicStyles.logo]}>Arrout</Text>
-        <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Slide the arrows</Text>
+    <View style={[styles.outerContainer, dynamicStyles.container]} onTouchStart={handleTouch}>
+      <ArrowFieldBackground colors={colors} ripple={ripple} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={[styles.logo, dynamicStyles.logo]}>Arrout</Text>
+          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Slide the arrows</Text>
 
-        <View style={styles.levelInfo}>
-          <Text style={[styles.levelNumber, dynamicStyles.levelNumber]}>Level {currentLevel}</Text>
-          <Text style={[styles.difficulty, dynamicStyles.difficulty]}>
-            {DIFFICULTY_LABELS[difficultyForLevel(currentLevel)] ?? 'Easy'}
-          </Text>
-        </View>
-
-        {streak > 0 && (
-          <View style={[styles.streakContainer, dynamicStyles.streakBg]}>
-            <Text style={[styles.streakLabel, dynamicStyles.streakLabel]}>Streak</Text>
-            <Text style={styles.streakValue}>{streak}</Text>
+          <View style={styles.levelInfo}>
+            <Text style={[styles.levelNumber, dynamicStyles.levelNumber]}>
+              Level {currentLevel}
+            </Text>
+            <Text style={[styles.difficulty, dynamicStyles.difficulty]}>
+              {DIFFICULTY_LABELS[difficultyForLevel(currentLevel)] ?? 'Easy'}
+            </Text>
           </View>
-        )}
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.playButton,
-            dynamicStyles.playButton,
-            pressed && styles.playButtonPressed,
-          ]}
-          onPress={() =>
-            router.push({ pathname: '/game', params: { level: currentLevel.toString() } })
-          }
-        >
-          <Text style={[styles.playButtonText, dynamicStyles.playButtonText]}>Play</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+          {streak > 0 && (
+            <View style={[styles.streakContainer, dynamicStyles.streakBg]}>
+              <Text style={[styles.streakLabel, dynamicStyles.streakLabel]}>Streak</Text>
+              <Text style={styles.streakValue}>{streak}</Text>
+            </View>
+          )}
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.playButton,
+              dynamicStyles.playButton,
+              pressed && styles.playButtonPressed,
+            ]}
+            onPress={() =>
+              router.push({ pathname: '/game', params: { level: currentLevel.toString() } })
+            }
+          >
+            <Text style={[styles.playButtonText, dynamicStyles.playButtonText]}>Play</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

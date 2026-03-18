@@ -1,5 +1,5 @@
-import { Canvas, Path, Skia } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
+import { Canvas, Path, Skia } from "@shopify/react-native-skia"
+import { useMemo } from "react"
 
 interface IconProps {
   readonly size: number
@@ -39,8 +39,8 @@ export function RestartIcon({ size, color }: IconProps) {
     const r = size * 0.34
     const toRad = Math.PI / 180
 
-    const startDeg = -20
-    const sweepDeg = 300
+    const startDeg = -30
+    const sweepDeg = 310
     const endDeg = startDeg + sweepDeg
 
     p.addArc({ x: cx - r, y: cy - r, width: r * 2, height: r * 2 }, startDeg, sweepDeg)
@@ -53,16 +53,20 @@ export function RestartIcon({ size, color }: IconProps) {
     const bx = Math.cos(backRad)
     const by = Math.sin(backRad)
 
-    const barbLen = size * 0.16
-    const spread = 35 * toRad
+    const barbLen = size * 0.2
+    const spread = 55 * toRad
 
-    for (const sign of [-1, 1]) {
+    const barbs = [-1, 1].map((sign) => {
       const angle = spread * sign
-      const dx = bx * Math.cos(angle) - by * Math.sin(angle)
-      const dy = bx * Math.sin(angle) + by * Math.cos(angle)
-      p.moveTo(ex, ey)
-      p.lineTo(ex + barbLen * dx, ey + barbLen * dy)
-    }
+      return {
+        x: ex + barbLen * (bx * Math.cos(angle) - by * Math.sin(angle)),
+        y: ey + barbLen * (bx * Math.sin(angle) + by * Math.cos(angle)),
+      }
+    })
+
+    p.moveTo(barbs[0].x, barbs[0].y)
+    p.lineTo(ex, ey)
+    p.lineTo(barbs[1].x, barbs[1].y)
 
     return p
   }, [size])
@@ -73,7 +77,7 @@ export function RestartIcon({ size, color }: IconProps) {
         path={path}
         color={color}
         style="stroke"
-        strokeWidth={size * 0.1}
+        strokeWidth={size * 0.07}
         strokeCap="round"
         strokeJoin="round"
       />
