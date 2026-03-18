@@ -14,7 +14,7 @@ function debugLog(tag: string, ...args: unknown[]) {
 const MIN_SCALE = 1.0
 const MAX_SCALE = 3.0
 const PAN_ACTIVATE_OFFSET = 10
-const PAN_OVERSHOOT_RATIO = 0.25
+const PAN_OVERSHOOT_RATIO = 0.5
 
 // Stable object — extends gesture touch area so zoomed-in content is tappable
 const HIT_SLOP = { left: 500, right: 500, top: 500, bottom: 500 }
