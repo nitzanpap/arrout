@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import type { ThemeColors } from '../../theme/colors'
+import { HeartIcon } from './Icons'
 
 interface HeartsProps {
   readonly remaining: number
@@ -7,16 +8,17 @@ interface HeartsProps {
   readonly colors: ThemeColors
 }
 
+const HEART_SIZE = 18
+
 export function Hearts({ remaining, total = 3, colors }: HeartsProps) {
   return (
     <View style={styles.container}>
       {Array.from({ length: total }, (_, i) => (
-        <Text
+        <HeartIcon
           key={`heart-${i}`}
-          style={[styles.heart, { color: i < remaining ? colors.heartFilled : colors.heartEmpty }]}
-        >
-          {i < remaining ? '\u2665' : '\u2661'}
-        </Text>
+          size={HEART_SIZE}
+          color={i < remaining ? colors.heartFilled : colors.heartEmpty}
+        />
       ))}
     </View>
   )
@@ -25,9 +27,7 @@ export function Hearts({ remaining, total = 3, colors }: HeartsProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 4,
-  },
-  heart: {
-    fontSize: 24,
+    gap: 6,
+    marginTop: 2,
   },
 })

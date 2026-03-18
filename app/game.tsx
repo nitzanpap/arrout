@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { Hearts } from '../src/components/HUD/Hearts'
+import { ChevronLeftIcon, RestartIcon } from '../src/components/HUD/Icons'
 import type { Difficulty } from '../src/engine/types'
 import { useGridGestures } from '../src/hooks/useGridGestures'
 import { useInactivityHint } from '../src/hooks/useInactivityHint'
@@ -162,21 +163,26 @@ export default function GameScreen() {
           {/* Left: back + restart buttons */}
           <View style={styles.leftButtons}>
             <Pressable
-              style={[styles.circleButton, dynamicStyles.buttonBg]}
+              style={({ pressed }) => [
+                styles.circleButton,
+                dynamicStyles.buttonBg,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => router.back()}
             >
-              <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u25C0'}</Text>
+              <ChevronLeftIcon size={18} color={colors.buttonIcon} />
             </Pressable>
             <Pressable
-              style={[
+              style={({ pressed }) => [
                 styles.circleButton,
                 dynamicStyles.buttonBg,
                 hasActiveAnimations && styles.disabled,
+                pressed && !hasActiveAnimations && styles.buttonPressed,
               ]}
               onPress={handleRestart}
               disabled={hasActiveAnimations}
             >
-              <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u21BA'}</Text>
+              <RestartIcon size={18} color={colors.buttonIcon} />
             </Pressable>
           </View>
 
@@ -308,9 +314,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  circleButtonIcon: {
-    fontSize: 16,
-    fontWeight: '700',
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.92 }],
   },
   disabled: {
     opacity: 0.4,
