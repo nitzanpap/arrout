@@ -74,12 +74,19 @@ export default function GameScreen() {
 
   const hasActiveAnimations = activeAnimations.size > 0
 
+  const { showHintFab, resetInactivityTimer, triggerHint } = useInactivityHint(
+    status,
+    storeUseHint,
+    selectArrow
+  )
+
   const handleArrowTap = useCallback(
     (arrowId: string) => {
       if (status !== 'playing') return
+      resetInactivityTimer()
       makeMove(arrowId)
     },
-    [status, makeMove]
+    [status, makeMove, resetInactivityTimer]
   )
 
   const { gesture, animatedStyle } = useGridGestures({
@@ -92,12 +99,6 @@ export default function GameScreen() {
     containerHeight: containerLayout.height || gridHeight,
     onArrowTap: handleArrowTap,
   })
-
-  const { showHintFab, resetInactivityTimer, triggerHint } = useInactivityHint(
-    status,
-    storeUseHint,
-    selectArrow
-  )
 
   const handleRestart = useCallback(() => {
     restart()
@@ -196,25 +197,19 @@ export default function GameScreen() {
       </View>
 
       {/* Game grid */}
-      <View
-        style={[styles.gridContainer, styles.gridClip]}
-        onLayout={handleContainerLayout}
-        onTouchStart={resetInactivityTimer}
-      >
+      <View style={[styles.gridContainer, styles.gridClip]} onLayout={handleContainerLayout}>
         <GestureDetector gesture={gesture}>
-          <View style={styles.gestureArea}>
-            <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
-              <GridCanvas
-                gridState={gridState}
-                selectedArrowId={selectedArrowId}
-                errorArrowIds={errorArrowIds}
-                canvasWidth={canvasWidth}
-                cellSize={cellSize}
-                offsetX={offsetX}
-                colors={colors}
-              />
-            </Animated.View>
-          </View>
+          <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
+            <GridCanvas
+              gridState={gridState}
+              selectedArrowId={selectedArrowId}
+              errorArrowIds={errorArrowIds}
+              canvasWidth={canvasWidth}
+              cellSize={cellSize}
+              offsetX={offsetX}
+              colors={colors}
+            />
+          </Animated.View>
         </GestureDetector>
         {showHintFab && status === 'playing' && (
           <Animated.View
@@ -339,11 +334,6 @@ const styles = StyleSheet.create({
   },
   gridClip: {
     overflow: 'hidden',
-  },
-  gestureArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { removeArrow } from '../engine/grid'
 import { canMove, executeMove } from '../engine/move'
-import { solve } from '../engine/solver'
 import type { GridState, Level } from '../engine/types'
 
 const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
@@ -208,13 +207,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   useHint: () => {
-    const { projectedGridState, status, activeAnimations } = get()
+    const { projectedGridState, status, activeAnimations, solution } = get()
     if (!projectedGridState || status !== 'playing' || activeAnimations.size > 0) return null
 
-    const result = solve(projectedGridState)
-    if (!result.solvable || result.moves.length === 0) return null
+    const remainingIds = new Set(projectedGridState.arrows.map((a) => a.id))
+    const hintArrowId = solution.find((id) => remainingIds.has(id)) ?? null
+    if (!hintArrowId) return null
 
-    const hintArrowId = result.moves[0]
     set({
       selectedArrowId: hintArrowId,
       hintsUsed: get().hintsUsed + 1,

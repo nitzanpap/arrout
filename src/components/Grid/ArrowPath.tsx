@@ -15,7 +15,7 @@ interface ArrowPathProps {
   readonly colors: ThemeColors
 }
 
-const SELECTED_GLOW_ALPHA = 0.4
+const HINT_GLOW_ALPHA = 0.6
 const STROKE_WIDTH_RATIO = 0.06
 const MIN_STROKE_WIDTH = 2
 const HEAD_SIZE_RATIO = 0.15
@@ -35,7 +35,7 @@ export function ArrowPath({
   )
 
   const strokeWidth = Math.max(MIN_STROKE_WIDTH, cellSize * STROKE_WIDTH_RATIO)
-  const color = isError ? colors.arrowError : colors.arrowColor
+  const color = isError ? colors.arrowError : isSelected ? colors.arrowHint : colors.arrowColor
   const opacity = isSelected ? 1 : 0.95
 
   // Static body path (used when NOT track-animating)
@@ -192,12 +192,12 @@ export function ArrowPath({
       {isSelected && (
         <Path
           path={staticBodyPath}
-          color={color}
+          color={colors.arrowHint}
           style="stroke"
-          strokeWidth={strokeWidth + 3}
+          strokeWidth={strokeWidth + 6}
           strokeCap="round"
           strokeJoin="round"
-          opacity={SELECTED_GLOW_ALPHA}
+          opacity={HINT_GLOW_ALPHA}
         />
       )}
     </Group>

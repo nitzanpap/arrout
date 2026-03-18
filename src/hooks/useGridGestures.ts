@@ -8,6 +8,9 @@ const MAX_SCALE = 3.0
 const PAN_ACTIVATE_OFFSET = 10
 const PAN_OVERSHOOT_RATIO = 0.25
 
+// Stable object — extends gesture touch area so zoomed-in content is tappable
+const HIT_SLOP = { left: 500, right: 500, top: 500, bottom: 500 }
+
 function clamp(value: number, min: number, max: number): number {
   'worklet'
   return Math.min(Math.max(value, min), max)
@@ -48,6 +51,7 @@ export function useGridGestures({
   const pinch = useMemo(
     () =>
       Gesture.Pinch()
+        .hitSlop(HIT_SLOP)
         .onStart(() => {
           savedScale.value = scale.value
           savedTranslateX.value = translateX.value
@@ -84,6 +88,7 @@ export function useGridGestures({
         .minPointers(1)
         .activeOffsetX([-PAN_ACTIVATE_OFFSET, PAN_ACTIVATE_OFFSET])
         .activeOffsetY([-PAN_ACTIVATE_OFFSET, PAN_ACTIVATE_OFFSET])
+        .hitSlop(HIT_SLOP)
         .onStart(() => {
           savedTranslateX.value = translateX.value
           savedTranslateY.value = translateY.value
@@ -113,20 +118,19 @@ export function useGridGestures({
   const tap = useMemo(
     () =>
       Gesture.Tap()
-        .maxDuration(300)
+        .hitSlop(HIT_SLOP)
         .runOnJS(true)
         .onEnd((e) => {
           if (!gridState || cellSize === 0) return
 
-          // e.x/e.y are relative to the gesture container (full-size wrapper).
-          // The content (Animated.View) is centered in the container.
-          // Transform [tx, ty, scale] with origin at content center.
-          // Inversion: canvasPoint = (gesturePoint - containerCenter - translate) / scale + contentCenter
+          // e.x/e.y are relative to the Animated.View's native frame.
+          // Transform [tx, ty, scale] has origin at the view's center.
+          // Inversion: canvasPoint = (tapPoint - center) / scale - translate + center
           const s = scale.value
           const tx = translateX.value
           const ty = translateY.value
-          const canvasX = (e.x - containerWidth / 2 - tx) / s + contentWidth / 2
-          const canvasY = (e.y - containerHeight / 2 - ty) / s + contentHeight / 2
+          const canvasX = (e.x - contentWidth / 2) / s - tx + contentWidth / 2
+          const canvasY = (e.y - contentHeight / 2) / s - ty + contentHeight / 2
 
           const col = Math.floor((canvasX - offsetX) / cellSize)
           const row = Math.floor(canvasY / cellSize)
@@ -146,14 +150,18 @@ export function useGridGestures({
       translateY,
       scale,
       onArrowTap,
-      containerWidth,
-      containerHeight,
       contentWidth,
       contentHeight,
     ]
   )
 
-  const gesture = useMemo(() => Gesture.Simultaneous(pinch, pan, tap), [pinch, pan, tap])
+  // Race: tap goes ACTIVE on finger-up, pan goes ACTIVE on movement > threshold.
+  // Whichever reaches ACTIVE first wins — no delay, no conflict.
+  // Simultaneous(pinch, pan) allows concurrent pan+zoom with two fingers.
+  const gesture = useMemo(
+    () => Gesture.Race(Gesture.Simultaneous(pinch, pan), tap),
+    [pinch, pan, tap]
+  )
 
   // Reset pan/zoom when content dimensions change (new level)
   const contentKey = `${contentWidth}x${contentHeight}`

@@ -9,6 +9,7 @@ export interface ThemeColors {
   readonly accent: string
   readonly arrowColor: string
   readonly arrowError: string
+  readonly arrowHint: string
   readonly heartFilled: string
   readonly heartEmpty: string
   readonly buttonBg: string
@@ -26,6 +27,7 @@ export const lightColors: ThemeColors = {
   accent: '#6C5CE7',
   arrowColor: '#1A1A2E',
   arrowError: '#FF6B8A',
+  arrowHint: '#3B82F6',
   heartFilled: '#FF4A6A',
   heartEmpty: '#C7C2E0',
   buttonBg: '#E8E3F8',
@@ -43,6 +45,7 @@ export const darkColors: ThemeColors = {
   accent: '#7B77FF',
   arrowColor: '#8B8FC7',
   arrowError: '#FF4A6A',
+  arrowHint: '#60A5FA',
   heartFilled: '#FF4A6A',
   heartEmpty: '#2A2D42',
   buttonBg: '#2A2D42',
