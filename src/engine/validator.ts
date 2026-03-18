@@ -1,6 +1,7 @@
 import { areCellsConnected } from './arrow'
-import { getCell, isInBounds, positionAhead } from './grid'
+import { getCell, isInBounds } from './grid'
 import type { Arrow, GridState } from './types'
+import { directionDelta } from './types'
 
 // ── Validation result ───────────────────────────────────────────
 
@@ -127,26 +128,26 @@ export function buildDependencyGraph(grid: GridState): ReadonlyMap<string, reado
 
 /**
  * Finds which arrows block the given arrow.
- * An arrow is blocked by another if the cell ahead of its head
- * belongs to a different arrow.
+ * Checks the FULL exit path from the head to the board edge.
+ * Any other arrow's cells in the exit path are blockers.
  */
 function findBlockers(arrow: Arrow, grid: GridState): string[] {
   const head = arrow.cells[0]
   if (head.content.type !== 'head') return []
 
-  const direction = head.content.direction
-  const ahead = positionAhead({ row: head.row, col: head.col }, direction)
+  const delta = directionDelta(head.content.direction)
+  const blockers = new Set<string>()
 
-  if (!isInBounds(grid, ahead)) return [] // can exit, not blocked
-
-  const cell = getCell(grid, ahead)
-  if (!cell || cell.content.type === 'empty') return []
-
-  if (cell.arrowId && cell.arrowId !== arrow.id) {
-    return [cell.arrowId]
+  let current = { row: head.row + delta.row, col: head.col + delta.col }
+  while (isInBounds(grid, current)) {
+    const cell = getCell(grid, current)
+    if (cell?.arrowId && cell.arrowId !== arrow.id) {
+      blockers.add(cell.arrowId)
+    }
+    current = { row: current.row + delta.row, col: current.col + delta.col }
   }
 
-  return []
+  return [...blockers]
 }
 
 function hasCycle(graph: ReadonlyMap<string, readonly string[]>): boolean {
@@ -197,24 +198,28 @@ export function isValidPuzzle(grid: GridState): boolean {
 
 /**
  * Returns the number of arrows that can currently move (freedom score).
+ * An arrow is free if its entire exit path to the board edge is clear.
  */
 export function computeFreedomScore(grid: GridState): number {
   let free = 0
   for (const arrow of grid.arrows) {
     const head = arrow.cells[0]
     if (head.content.type !== 'head') continue
-    const direction = head.content.direction
-    const ahead = positionAhead({ row: head.row, col: head.col }, direction)
 
-    if (!isInBounds(grid, ahead)) {
-      free++
-      continue
+    const delta = directionDelta(head.content.direction)
+    let blocked = false
+    let current = { row: head.row + delta.row, col: head.col + delta.col }
+
+    while (isInBounds(grid, current)) {
+      const cell = getCell(grid, current)
+      if (cell && cell.content.type !== 'empty') {
+        blocked = true
+        break
+      }
+      current = { row: current.row + delta.row, col: current.col + delta.col }
     }
 
-    const cell = getCell(grid, ahead)
-    if (cell && cell.content.type === 'empty') {
-      free++
-    }
+    if (!blocked) free++
   }
   return free
 }

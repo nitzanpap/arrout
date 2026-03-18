@@ -21,18 +21,18 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, GeneratorConfig> = {
     curveProbability: 0.2,
   },
   medium: {
-    width: 9,
-    height: 9,
-    targetArrowCount: 12,
+    width: 10,
+    height: 10,
+    targetArrowCount: 15,
     minArrowLength: 2,
     maxArrowLength: 7,
     targetMaxFreedom: 3,
-    curveProbability: 0.4,
+    curveProbability: 0.45,
   },
   hard: {
-    width: 13,
-    height: 13,
-    targetArrowCount: 20,
+    width: 14,
+    height: 14,
+    targetArrowCount: 30,
     minArrowLength: 3,
     maxArrowLength: 10,
     targetMaxFreedom: 2,
@@ -41,7 +41,7 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, GeneratorConfig> = {
   superHard: {
     width: 18,
     height: 18,
-    targetArrowCount: 40,
+    targetArrowCount: 50,
     minArrowLength: 4,
     maxArrowLength: 15,
     targetMaxFreedom: 1,
@@ -50,9 +50,9 @@ export const DIFFICULTY_CONFIGS: Record<Difficulty, GeneratorConfig> = {
 }
 
 export function difficultyForLevel(n: number): Difficulty {
-  if (n <= 5) return 'easy'
-  if (n <= 20) return 'medium'
-  if (n <= 50) return 'hard'
+  if (n <= 3) return 'easy'
+  if (n <= 8) return 'medium'
+  if (n <= 20) return 'hard'
   return 'superHard'
 }
 
@@ -81,12 +81,12 @@ function interpolateConfig(from: GeneratorConfig, to: GeneratorConfig, t: number
  * Gradually ramps difficulty instead of flat 50-level tiers.
  */
 export function configForLevel(n: number): GeneratorConfig {
-  if (n <= 5) return DIFFICULTY_CONFIGS.easy
+  if (n <= 3) return DIFFICULTY_CONFIGS.easy
+  if (n <= 8)
+    return interpolateConfig(DIFFICULTY_CONFIGS.easy, DIFFICULTY_CONFIGS.medium, (n - 3) / 5)
   if (n <= 20)
-    return interpolateConfig(DIFFICULTY_CONFIGS.easy, DIFFICULTY_CONFIGS.medium, (n - 5) / 15)
+    return interpolateConfig(DIFFICULTY_CONFIGS.medium, DIFFICULTY_CONFIGS.hard, (n - 8) / 12)
   if (n <= 50)
-    return interpolateConfig(DIFFICULTY_CONFIGS.medium, DIFFICULTY_CONFIGS.hard, (n - 20) / 30)
-  if (n <= 100)
-    return interpolateConfig(DIFFICULTY_CONFIGS.hard, DIFFICULTY_CONFIGS.superHard, (n - 50) / 50)
+    return interpolateConfig(DIFFICULTY_CONFIGS.hard, DIFFICULTY_CONFIGS.superHard, (n - 20) / 30)
   return DIFFICULTY_CONFIGS.superHard
 }

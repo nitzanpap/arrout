@@ -346,8 +346,9 @@ describe('detectCircularDeadlocks', () => {
     const grid2 = createGrid(6, 6)
     let state = placeArrow(grid2, a3)
     state = placeArrow(state, a4)
-    // These arrows don't block each other (nothing between them)
-    expect(detectCircularDeadlocks(state)).toBe(false)
+    // These arrows face each other on the same row — their full exit paths overlap,
+    // creating a circular dependency (a3 blocks a4 and a4 blocks a3).
+    expect(detectCircularDeadlocks(state)).toBe(true)
   })
 })
 

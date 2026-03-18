@@ -17,7 +17,7 @@ export interface SolveResult {
  * @param grid - The initial grid state
  * @param maxStates - Maximum number of states to explore (prevents runaway on large grids)
  */
-export function solve(grid: GridState, maxStates = 10_000): SolveResult {
+export function solve(grid: GridState, maxStates = 50_000): SolveResult {
   if (grid.arrows.length === 0) {
     return { solvable: true, moves: [] }
   }
