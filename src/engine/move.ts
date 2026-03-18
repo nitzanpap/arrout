@@ -17,8 +17,8 @@ function debugLog(tag: string, ...args: unknown[]) {
 
 /**
  * Checks whether an arrow can fully slide off the board.
- * Every cell from the head to the board edge (in the head's direction)
- * must be empty or part of the arrow itself.
+ * Simulates the snake movement step-by-step to correctly handle
+ * curved arrows that might overlap with their own body.
  */
 export function canMove(arrowId: string, grid: GridState): boolean {
   const arrow = getArrow(grid, arrowId)
@@ -27,31 +27,49 @@ export function canMove(arrowId: string, grid: GridState): boolean {
     return false
   }
 
-  const head = arrow.cells[0]
   const direction = getHeadDirection(arrow)
   const delta = directionDelta(direction)
 
-  // Build set of cells owned by this arrow (they vacate as it slides)
-  const arrowCellKeys = new Set(arrow.cells.map((c) => `${c.row},${c.col}`))
+  // Build set of cells occupied by other arrows
+  const otherCells = new Set<string>()
+  for (const a of grid.arrows) {
+    if (a.id === arrowId) continue
+    for (const c of a.cells) {
+      otherCells.add(`${c.row},${c.col}`)
+    }
+  }
 
-  // Walk from head+1 all the way to the board edge
-  let checkRow = head.row + delta.row
-  let checkCol = head.col + delta.col
+  // Simulate snake movement step by step
+  let positions = arrow.cells.map((c) => ({ row: c.row, col: c.col }))
 
-  while (isInBounds(grid, { row: checkRow, col: checkCol })) {
-    if (!arrowCellKeys.has(`${checkRow},${checkCol}`)) {
-      const cell = getCell(grid, { row: checkRow, col: checkCol })
-      if (cell && cell.content.type !== 'empty') {
-        debugLog(
-          'canMove',
-          `arrow ${arrowId} blocked at (${checkRow},${checkCol}) by ${cell.content.type}` +
-            (cell.arrowId ? ` [arrow: ${cell.arrowId}]` : '')
-        )
+  while (positions.some((p) => isInBounds(grid, p))) {
+    const newHead = { row: positions[0].row + delta.row, col: positions[0].col + delta.col }
+
+    // Check if head collides with another arrow's cell
+    if (isInBounds(grid, newHead) && otherCells.has(`${newHead.row},${newHead.col}`)) {
+      debugLog('canMove', `arrow ${arrowId} blocked at (${newHead.row},${newHead.col})`)
+      return false
+    }
+
+    // Compute new positions (head advances, body follows)
+    const newPositions = [newHead]
+    for (let i = 1; i < positions.length; i++) {
+      newPositions.push({ row: positions[i - 1].row, col: positions[i - 1].col })
+    }
+
+    // Check self-overlap among on-board cells
+    const seen = new Set<string>()
+    for (const p of newPositions) {
+      if (!isInBounds(grid, p)) continue
+      const key = `${p.row},${p.col}`
+      if (seen.has(key)) {
+        debugLog('canMove', `arrow ${arrowId} self-overlap at (${p.row},${p.col})`)
         return false
       }
+      seen.add(key)
     }
-    checkRow += delta.row
-    checkCol += delta.col
+
+    positions = newPositions
   }
 
   debugLog('canMove', `arrow ${arrowId} path clear, direction=${direction}`)
@@ -155,7 +173,7 @@ export function computeSlideDistanceCells(arrowId: string, state: GridState): nu
 
 /**
  * Computes how many empty cells lie between the arrow's head and the first
- * blocking obstacle (another arrow's cell or the board edge).
+ * blocking obstacle (another arrow's cell) in the head's direction.
  * Returns 0 if the blocker is immediately adjacent to the head.
  * Only meaningful for invalid moves — for valid moves use computeSlideDistanceCells.
  */
@@ -167,25 +185,20 @@ export function computeDistanceToBlocker(arrowId: string, grid: GridState): numb
   const direction = getHeadDirection(arrow)
   const delta = directionDelta(direction)
 
-  const arrowCellKeys = new Set(arrow.cells.map((c) => `${c.row},${c.col}`))
-
   let distance = 0
   let row = head.row + delta.row
   let col = head.col + delta.col
 
   while (isInBounds(grid, { row, col })) {
-    if (!arrowCellKeys.has(`${row},${col}`)) {
-      const cell = getCell(grid, { row, col })
-      if (cell && cell.content.type !== 'empty') {
-        return distance
-      }
-      distance++
+    const cell = getCell(grid, { row, col })
+    if (cell && cell.content.type !== 'empty' && cell.arrowId !== arrowId) {
+      return distance
     }
+    distance++
     row += delta.row
     col += delta.col
   }
 
-  // No blocker found before edge — path is clear (shouldn't happen for invalid moves)
   return distance
 }
 

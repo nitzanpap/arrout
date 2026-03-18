@@ -1,5 +1,5 @@
 import { getHeadDirection } from './arrow'
-import { getArrow } from './grid'
+import { getArrow, isInBounds } from './grid'
 import type { GridState } from './types'
 import { directionDelta } from './types'
 
@@ -8,61 +8,63 @@ export interface CellPosition {
   readonly col: number
 }
 
-export interface StepPositions {
+/**
+ * A track is the full path the arrow rides along during its slide animation.
+ * Positions are ordered from tail to head, then extended beyond the head
+ * in the head's direction until the entire arrow would be off-board.
+ *
+ * The animation is a sliding window over this track:
+ * - At progress 0, the window covers positions [0, arrowLength-1] (original arrow)
+ * - At progress N, the window has shifted N positions toward the head end
+ * - Total steps = positions.length - arrowLength
+ */
+export interface ArrowTrack {
   readonly positions: readonly CellPosition[]
+  readonly arrowLength: number
 }
 
 /**
- * Computes per-step cell positions for a snake-style slide animation.
- * Unlike executeMoveSteps, this keeps ALL cell positions including those
- * that have exited the board, so the arrow smoothly slides off-screen
- * rather than shrinking at the edge.
+ * Builds the track for an arrow's slide animation.
  *
- * Step 0 = initial position. Each subsequent step advances the snake by one cell.
- * Continues until every cell is off-board.
+ * The track consists of:
+ * 1. The arrow's current cells in tail-to-head order
+ * 2. Extensions beyond the head in the head's direction until
+ *    the entire arrow has exited the board
  */
-export function extractStepPositions(
-  arrowId: string,
-  initialState: GridState
-): readonly StepPositions[] {
+export function extractTrack(arrowId: string, initialState: GridState): ArrowTrack | null {
   const arrow = getArrow(initialState, arrowId)
-  if (!arrow) return []
+  if (!arrow || arrow.cells.length === 0) return null
 
   const direction = getHeadDirection(arrow)
   const delta = directionDelta(direction)
+  const arrowLength = arrow.cells.length
 
-  // Start with the arrow's current cell positions
-  let positions: CellPosition[] = arrow.cells.map((c) => ({ row: c.row, col: c.col }))
+  // Arrow cells are head-first (cells[0] = head). Reverse to get tail-first.
+  const tailToHead: CellPosition[] = [...arrow.cells].reverse().map((c) => ({
+    row: c.row,
+    col: c.col,
+  }))
 
-  const allSteps: StepPositions[] = [{ positions: [...positions] }]
+  // Extend beyond the head until the entire arrow would be off-board.
+  // We need enough extensions so that even the tail (first element) exits.
+  const head = tailToHead[arrowLength - 1]
+  let extRow = head.row + delta.row
+  let extCol = head.col + delta.col
 
-  const isAnyOnBoard = (cells: CellPosition[]): boolean =>
-    cells.some(
-      (c) => c.row >= 0 && c.row < initialState.height && c.col >= 0 && c.col < initialState.width
-    )
-
-  // Simulate snake movement: head moves forward, each body cell takes
-  // the previous position of the cell ahead of it
-  while (isAnyOnBoard(positions)) {
-    const newPositions: CellPosition[] = []
-
-    // Head advances in its direction
-    newPositions.push({
-      row: positions[0].row + delta.row,
-      col: positions[0].col + delta.col,
-    })
-
-    // Body segments: each moves to where the segment ahead was
-    for (let i = 1; i < positions.length; i++) {
-      newPositions.push({
-        row: positions[i - 1].row,
-        col: positions[i - 1].col,
-      })
+  // Keep extending until we've added enough positions for the full arrow to exit.
+  // The arrow exits when the tail (first visible position) is off-board.
+  // At progress P, the tail is at track[P]. We need track[P] to be off-board.
+  // P_max = positions.length - arrowLength, and tail = track[P_max].
+  // So we need positions beyond the head until track has enough off-board entries.
+  let offBoardCount = 0
+  while (offBoardCount < arrowLength) {
+    tailToHead.push({ row: extRow, col: extCol })
+    if (!isInBounds(initialState, { row: extRow, col: extCol })) {
+      offBoardCount++
     }
-
-    positions = newPositions
-    allSteps.push({ positions: [...positions] })
+    extRow += delta.row
+    extCol += delta.col
   }
 
-  return allSteps
+  return { positions: tailToHead, arrowLength }
 }

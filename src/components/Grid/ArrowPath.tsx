@@ -29,7 +29,7 @@ export function ArrowPath({
   isError,
   colors,
 }: ArrowPathProps) {
-  const { translateX, translateY, progress, stepPositions, isSnakeAnimating } = useArrowAnimation(
+  const { translateX, translateY, progress, track, isTrackAnimating } = useArrowAnimation(
     arrow.id,
     cellSize
   )
@@ -38,7 +38,7 @@ export function ArrowPath({
   const color = isError ? colors.arrowError : colors.arrowColor
   const opacity = isSelected ? 1 : 0.95
 
-  // Static body path (used when NOT snake-animating)
+  // Static body path (used when NOT track-animating)
   const staticBodyPath = useMemo(() => {
     const path = Skia.Path.Make()
     if (arrow.cells.length < 2) return path
@@ -56,7 +56,7 @@ export function ArrowPath({
     return path
   }, [arrow.cells, cellSize, offsetX, offsetY])
 
-  // Static head path (used when NOT snake-animating)
+  // Static head path (used when NOT track-animating)
   const staticHeadPath = useMemo(() => {
     const head = arrow.cells[0]
     if (head.content.type !== 'head') return null
@@ -70,90 +70,110 @@ export function ArrowPath({
 
   // Transform for invalid animation (Group translate)
   const animatedTransform = useDerivedValue(() => {
-    if (isSnakeAnimating) {
+    if (isTrackAnimating) {
       return [{ translateX: 0 }, { translateY: 0 }]
     }
     return [{ translateX: translateX.value }, { translateY: translateY.value }]
   })
 
-  // Snake-animated body path — rebuilt each frame from interpolated positions
-  const snakeBodyPath = useDerivedValue(() => {
-    if (!isSnakeAnimating || !stepPositions || stepPositions.length < 2) {
+  // Track-animated body path — sliding window over the track
+  const trackBodyPath = useDerivedValue(() => {
+    if (!isTrackAnimating || !track || track.positions.length <= track.arrowLength) {
       return staticBodyPath
     }
 
-    const numSteps = stepPositions.length - 1
-    const p = Math.min(Math.max(progress.value, 0), numSteps)
-    const stepIndex = Math.min(Math.floor(p), numSteps - 1)
-    const fraction = p - stepIndex
+    const maxProgress = track.positions.length - track.arrowLength
+    const p = Math.min(Math.max(progress.value, 0), maxProgress)
 
-    const currentStep = stepPositions[stepIndex]
-    const nextStep = stepPositions[Math.min(stepIndex + 1, numSteps)]
+    const tailFloat = p
+    const headFloat = p + track.arrowLength - 1
 
-    // Determine how many cells to render (use the max of both steps)
-    const cellCount = Math.max(currentStep.positions.length, nextStep.positions.length)
-    if (cellCount < 2) return staticBodyPath
+    const tailFloor = Math.floor(tailFloat)
+    const tailCeil = Math.min(tailFloor + 1, track.positions.length - 1)
+    const tailFrac = tailFloat - tailFloor
+
+    const headFloor = Math.min(Math.floor(headFloat), track.positions.length - 1)
+    const headCeil = Math.min(headFloor + 1, track.positions.length - 1)
+    const headFrac = headFloat - Math.floor(headFloat)
 
     const path = Skia.Path.Make()
 
-    for (let i = 0; i < cellCount; i++) {
-      const curr = currentStep.positions[Math.min(i, currentStep.positions.length - 1)]
-      const next = nextStep.positions[Math.min(i, nextStep.positions.length - 1)]
+    // Start point: interpolated tail position
+    const tailA = track.positions[tailFloor]
+    const tailB = track.positions[tailCeil]
+    const startX =
+      offsetX + (tailA.col + (tailB.col - tailA.col) * tailFrac) * cellSize + cellSize / 2
+    const startY =
+      offsetY + (tailA.row + (tailB.row - tailA.row) * tailFrac) * cellSize + cellSize / 2
 
-      const x = offsetX + (curr.col + (next.col - curr.col) * fraction) * cellSize + cellSize / 2
-      const y = offsetY + (curr.row + (next.row - curr.row) * fraction) * cellSize + cellSize / 2
+    path.moveTo(startX, startY)
 
-      if (i === 0) {
-        path.moveTo(x, y)
-      } else {
-        path.lineTo(x, y)
-      }
+    // Interior points: exact grid positions (no interpolation — no diagonal movement)
+    const firstInterior = tailCeil
+    const lastInterior = headFloor
+
+    for (let i = firstInterior; i <= lastInterior; i++) {
+      const pos = track.positions[i]
+      const x = offsetX + pos.col * cellSize + cellSize / 2
+      const y = offsetY + pos.row * cellSize + cellSize / 2
+      path.lineTo(x, y)
+    }
+
+    // End point: interpolated head position
+    if (headFrac > 0 && headCeil > headFloor) {
+      const headA = track.positions[headFloor]
+      const headB = track.positions[headCeil]
+      const endX =
+        offsetX + (headA.col + (headB.col - headA.col) * headFrac) * cellSize + cellSize / 2
+      const endY =
+        offsetY + (headA.row + (headB.row - headA.row) * headFrac) * cellSize + cellSize / 2
+      path.lineTo(endX, endY)
     }
 
     return path
   })
 
-  // Snake-animated arrowhead path
+  // Track-animated arrowhead path
   const emptyPath = useMemo(() => Skia.Path.Make(), [])
 
-  const snakeHeadPath = useDerivedValue(() => {
-    if (!isSnakeAnimating || !stepPositions || stepPositions.length < 2) {
+  const trackHeadPath = useDerivedValue(() => {
+    if (!isTrackAnimating || !track || track.positions.length <= track.arrowLength) {
       return staticHeadPath ?? emptyPath
     }
 
     const head = arrow.cells[0]
     if (head.content.type !== 'head') return emptyPath
 
-    const numSteps = stepPositions.length - 1
-    const p = Math.min(Math.max(progress.value, 0), numSteps)
-    const stepIndex = Math.min(Math.floor(p), numSteps - 1)
-    const fraction = p - stepIndex
+    const maxProgress = track.positions.length - track.arrowLength
+    const p = Math.min(Math.max(progress.value, 0), maxProgress)
 
-    const currentStep = stepPositions[stepIndex]
-    const nextStep = stepPositions[Math.min(stepIndex + 1, numSteps)]
+    const headFloat = p + track.arrowLength - 1
+    const headFloor = Math.min(Math.floor(headFloat), track.positions.length - 1)
+    const headCeil = Math.min(headFloor + 1, track.positions.length - 1)
+    const headFrac = headFloat - Math.floor(headFloat)
 
-    const curr = currentStep.positions[0]
-    const next = nextStep.positions[0]
+    const posA = track.positions[headFloor]
+    const posB = track.positions[headCeil]
 
-    const cx = offsetX + (curr.col + (next.col - curr.col) * fraction) * cellSize + cellSize / 2
-    const cy = offsetY + (curr.row + (next.row - curr.row) * fraction) * cellSize + cellSize / 2
+    const cx = offsetX + (posA.col + (posB.col - posA.col) * headFrac) * cellSize + cellSize / 2
+    const cy = offsetY + (posA.row + (posB.row - posA.row) * headFrac) * cellSize + cellSize / 2
     const size = cellSize * HEAD_SIZE_RATIO
 
     return buildArrowHead(head.content.direction, cx, cy, size)
   })
 
-  if (isSnakeAnimating) {
+  if (isTrackAnimating) {
     return (
       <Group opacity={opacity}>
         <Path
-          path={snakeBodyPath}
+          path={trackBodyPath}
           color={color}
           style="stroke"
           strokeWidth={strokeWidth}
           strokeCap="round"
           strokeJoin="round"
         />
-        <Path path={snakeHeadPath} color={color} style="fill" />
+        <Path path={trackHeadPath} color={color} style="fill" />
       </Group>
     )
   }

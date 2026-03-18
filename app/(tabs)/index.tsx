@@ -2,14 +2,15 @@ import { useRouter } from 'expo-router'
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { difficultyForLevel } from '../../src/generator/difficulty'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
 
-function getDifficultyLabel(level: number): string {
-  if (level <= 50) return 'Easy'
-  if (level <= 100) return 'Medium'
-  if (level <= 150) return 'Hard'
-  return 'Super Hard'
+const DIFFICULTY_LABELS: Record<string, string> = {
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
+  superHard: 'Super Hard',
 }
 
 export default function HomeScreen() {
@@ -42,7 +43,7 @@ export default function HomeScreen() {
         <View style={styles.levelInfo}>
           <Text style={[styles.levelNumber, dynamicStyles.levelNumber]}>Level {currentLevel}</Text>
           <Text style={[styles.difficulty, dynamicStyles.difficulty]}>
-            {getDifficultyLabel(currentLevel)}
+            {DIFFICULTY_LABELS[difficultyForLevel(currentLevel)] ?? 'Easy'}
           </Text>
         </View>
 

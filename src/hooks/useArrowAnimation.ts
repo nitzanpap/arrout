@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
 import { getHeadDirection } from '../engine/arrow'
 import { computeDistanceToBlocker } from '../engine/move'
-import type { StepPositions } from '../engine/moveSteps'
-import { extractStepPositions } from '../engine/moveSteps'
+import type { ArrowTrack } from '../engine/moveSteps'
+import { extractTrack } from '../engine/moveSteps'
 import type { Direction } from '../engine/types'
 import { directionDelta } from '../engine/types'
 import type { AnimationEntry } from '../store/game.store'
@@ -19,8 +19,8 @@ export interface ArrowAnimationState {
   readonly translateX: { value: number }
   readonly translateY: { value: number }
   readonly progress: { value: number }
-  readonly stepPositions: readonly StepPositions[] | null
-  readonly isSnakeAnimating: boolean
+  readonly track: ArrowTrack | null
+  readonly isTrackAnimating: boolean
 }
 
 export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnimationState {
@@ -28,8 +28,8 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
   const translateY = useSharedValue(0)
   const progress = useSharedValue(0)
 
-  const [stepPositions, setStepPositions] = useState<readonly StepPositions[] | null>(null)
-  const [isSnakeAnimating, setIsSnakeAnimating] = useState(false)
+  const [track, setTrack] = useState<ArrowTrack | null>(null)
+  const [isTrackAnimating, setIsTrackAnimating] = useState(false)
 
   const animEntry = useGameStore(
     (s) => s.activeAnimations.get(arrowId) ?? null
@@ -44,8 +44,8 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
 
   const onValidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    setIsSnakeAnimating(false)
-    setStepPositions(null)
+    setIsTrackAnimating(false)
+    setTrack(null)
     completeValidAnimation(arrowId)
   }, [completeValidAnimation, arrowId])
 
@@ -74,14 +74,13 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     const delta = directionDelta(direction)
 
     if (animEntry.type === 'valid') {
-      // Compute snake step positions — includes off-board positions for smooth exit
-      const positions = extractStepPositions(arrowId, gridState)
+      const arrowTrack = extractTrack(arrowId, gridState)
 
-      if (positions.length > 1) {
-        const numSteps = positions.length - 1
+      if (arrowTrack && arrowTrack.positions.length > arrowTrack.arrowLength) {
+        const numSteps = arrowTrack.positions.length - arrowTrack.arrowLength
 
-        setStepPositions(positions)
-        setIsSnakeAnimating(true)
+        setTrack(arrowTrack)
+        setIsTrackAnimating(true)
 
         progress.value = 0
         translateX.value = 0
@@ -89,7 +88,6 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
 
-        // Linear easing so the arrow doesn't decelerate as it exits the board
         progress.value = withTiming(
           numSteps,
           {
@@ -133,7 +131,7 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     onInvalidComplete,
   ])
 
-  return { translateX, translateY, progress, stepPositions, isSnakeAnimating }
+  return { translateX, translateY, progress, track, isTrackAnimating }
 }
 
 function startSlideToBlockerAndBack(

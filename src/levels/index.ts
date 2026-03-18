@@ -1,12 +1,17 @@
 import type { Level } from '../engine/types'
 import { generateLevel, generateLevelFromConfig } from '../generator'
 import { configForLevel, difficultyForLevel } from '../generator/difficulty'
+import bundledLevels from './bundled.json'
 
 /**
  * Returns a level for the given level number.
- * Difficulty scales gradually via interpolated configs.
+ * Loads from pre-generated bundle when available, falls back to on-the-fly generation.
  */
 export function getLevel(levelNumber: number): Level {
+  const key = String(levelNumber)
+  const bundled = (bundledLevels as Record<string, unknown>)[key]
+  if (bundled) return bundled as Level
+
   const config = configForLevel(levelNumber)
   const difficulty = difficultyForLevel(levelNumber)
   return generateLevelFromConfig(levelNumber, difficulty, config)
