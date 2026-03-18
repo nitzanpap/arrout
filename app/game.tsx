@@ -1,10 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { GridOverlay } from '../src/components/Grid/GridOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
+import { useInactivityHint } from '../src/hooks/useInactivityHint'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
@@ -29,6 +31,8 @@ export default function GameScreen() {
 
   const makeMove = useGameStore((s) => s.makeMove)
   const restart = useGameStore((s) => s.restart)
+  const selectArrow = useGameStore((s) => s.selectArrow)
+  const storeUseHint = useGameStore((s) => s.useHint)
 
   const recordComplete = useProgressStore((s) => s.recordLevelComplete)
 
@@ -52,6 +56,17 @@ export default function GameScreen() {
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
   const hasActiveAnimations = activeAnimations.size > 0
+
+  const { showHintFab, resetInactivityTimer, triggerHint } = useInactivityHint(
+    status,
+    storeUseHint,
+    selectArrow
+  )
+
+  const handleRestart = useCallback(() => {
+    restart()
+    resetInactivityTimer()
+  }, [restart, resetInactivityTimer])
 
   const handleArrowTap = useCallback(
     (arrowId: string) => {
@@ -129,7 +144,7 @@ export default function GameScreen() {
                 dynamicStyles.buttonBg,
                 hasActiveAnimations && styles.disabled,
               ]}
-              onPress={restart}
+              onPress={handleRestart}
               disabled={hasActiveAnimations}
             >
               <Text style={[styles.circleButtonIcon, dynamicStyles.buttonIcon]}>{'\u21BA'}</Text>
@@ -149,7 +164,10 @@ export default function GameScreen() {
 
       {/* Game grid */}
       <View style={styles.gridContainer}>
-        <View style={{ width: canvasWidth, height: gridHeight }}>
+        <View
+          style={{ width: canvasWidth, height: gridHeight }}
+          onTouchStart={resetInactivityTimer}
+        >
           <GridCanvas
             gridState={gridState}
             selectedArrowId={selectedArrowId}
@@ -166,6 +184,25 @@ export default function GameScreen() {
             onArrowTap={handleArrowTap}
           />
         </View>
+        {showHintFab && status === 'playing' && (
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            exiting={FadeOut.duration(200)}
+            style={styles.hintFab}
+          >
+            <Pressable
+              style={[
+                styles.hintFabButton,
+                { backgroundColor: colors.accent },
+                hasActiveAnimations && styles.disabled,
+              ]}
+              onPress={triggerHint}
+              disabled={hasActiveAnimations}
+            >
+              <Text style={styles.hintFabText}>?</Text>
+            </Pressable>
+          </Animated.View>
+        )}
       </View>
 
       {/* Win overlay */}
@@ -291,6 +328,28 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 16,
+    fontWeight: '700',
+  },
+  hintFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+  },
+  hintFabButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  hintFabText: {
+    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
   },
 })
