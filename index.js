@@ -6,8 +6,7 @@ import { Platform } from 'react-native'
 if (Platform.OS === 'web') {
   import('@shopify/react-native-skia/lib/module/web').then(({ LoadSkiaWeb }) =>
     LoadSkiaWeb({
-      locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/${file}`,
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/${file}`,
     }).then(() => renderRootComponent(App))
   )
 } else {
