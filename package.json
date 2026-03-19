@@ -18,7 +18,8 @@
     "build:ios": "eas build --platform ios --profile production",
     "build:ios:preview": "eas build --platform ios --profile preview",
     "build:android:local": "eas build --platform android --profile preview --local",
-    "build:ios:local": "eas build --platform ios --local"
+    "build:ios:local": "eas build --platform ios --local",
+    "postinstall": "node node_modules/@shopify/react-native-skia/scripts/install-skia.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.6",
