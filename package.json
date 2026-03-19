@@ -12,7 +12,13 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "build:android": "eas build --platform android --profile production",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:ios": "eas build --platform ios --profile production",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:android:local": "eas build --platform android --profile preview --local",
+    "build:ios:local": "eas build --platform ios --local"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

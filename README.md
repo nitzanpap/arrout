@@ -50,6 +50,21 @@ biome format --write .  # format
 tsc --noEmit            # typecheck
 ```
 
+### Build
+
+Builds use [EAS Build](https://docs.expo.dev/build/introduction/). Requires `eas login` first.
+
+```bash
+bun run build:android:preview   # APK for testing (sideloadable)
+bun run build:android           # AAB for Google Play Store
+bun run build:ios:preview       # IPA for internal testing (TestFlight)
+bun run build:ios               # IPA for App Store
+
+# Local builds (no cloud, requires native SDKs installed)
+bun run build:android:local     # APK locally (needs Android SDK)
+bun run build:ios:local         # IPA locally (needs Xcode)
+```
+
 ## Tech Stack
 
 | Concern | Choice |
