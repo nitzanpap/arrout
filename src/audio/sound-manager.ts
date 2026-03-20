@@ -86,14 +86,6 @@ export const SoundManager = {
       // at currentTime > 0 so the first real play() triggers a seek + play
       // on an already-primed audio session.
     }
-
-    if (__DEV__) {
-      for (const [name, player] of players) {
-        console.debug(
-          `[audio:sound-manager] ${name} loaded=${player.isLoaded} time=${player.currentTime}`
-        )
-      }
-    }
   },
 
   play(name: SoundName): void {
@@ -103,11 +95,6 @@ export const SoundManager = {
     if (!player) return
 
     try {
-      if (__DEV__) {
-        console.debug(
-          `[audio:sound-manager] play ${name} loaded=${player.isLoaded} time=${player.currentTime}`
-        )
-      }
       player.seekTo(0)
       player.play()
     } catch (error) {
