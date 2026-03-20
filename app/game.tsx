@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { SoundManager, SoundName } from '../src/audio'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
 import { CelebrationOverlay } from '../src/components/HUD/CelebrationOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
@@ -128,7 +129,13 @@ export default function GameScreen() {
     onPreviewArrow: handlePreviewArrow,
   })
 
+  const handleBack = useCallback(() => {
+    SoundManager.play(SoundName.Tap)
+    router.back()
+  }, [router])
+
   const handleUndo = useCallback(() => {
+    SoundManager.play(SoundName.Tap)
     undo()
     resetInactivityTimer()
   }, [undo, resetInactivityTimer])
@@ -142,6 +149,7 @@ export default function GameScreen() {
   }, [level, heartsRemaining, levelNumber, recordComplete, router])
 
   const toggleGridLines = useCallback(() => {
+    SoundManager.play(SoundName.Tap)
     setShowGridLines((prev) => !prev)
   }, [])
 
@@ -219,7 +227,7 @@ export default function GameScreen() {
                 dynamicStyles.buttonBg,
                 pressed && styles.buttonPressed,
               ]}
-              onPress={() => router.back()}
+              onPress={handleBack}
             >
               <ChevronLeftIcon size={20} color={colors.buttonIcon} />
             </Pressable>
@@ -258,7 +266,10 @@ export default function GameScreen() {
                     hasActiveAnimations && styles.disabled,
                     pressed && !hasActiveAnimations && styles.buttonPressed,
                   ]}
-                  onPress={triggerHint}
+                  onPress={() => {
+                    SoundManager.play(SoundName.Tap)
+                    triggerHint()
+                  }}
                   disabled={hasActiveAnimations}
                 >
                   <LightbulbIcon size={20} color={colors.buttonIcon} />
@@ -337,7 +348,13 @@ export default function GameScreen() {
         <View style={[styles.overlay, dynamicStyles.overlayBg]}>
           <View style={[styles.overlayCard, dynamicStyles.overlayCard]}>
             <Text style={[styles.overlayTitle, dynamicStyles.overlayTitle]}>Out of Hearts</Text>
-            <Pressable style={[styles.nextButton, dynamicStyles.nextButton]} onPress={restart}>
+            <Pressable
+              style={[styles.nextButton, dynamicStyles.nextButton]}
+              onPress={() => {
+                SoundManager.play(SoundName.Tap)
+                restart()
+              }}
+            >
               <Text style={[styles.nextButtonText, dynamicStyles.nextButtonText]}>Try Again</Text>
             </Pressable>
           </View>

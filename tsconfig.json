@@ -10,7 +10,8 @@
       "@store/*": ["src/store/*"],
       "@hooks/*": ["src/hooks/*"],
       "@levels/*": ["src/levels/*"],
-      "@persistence/*": ["src/persistence/*"]
+      "@persistence/*": ["src/persistence/*"],
+      "@audio/*": ["src/audio/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

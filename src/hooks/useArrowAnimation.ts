@@ -1,9 +1,11 @@
 import * as Haptics from 'expo-haptics'
 import { useCallback, useEffect, useRef } from 'react'
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
+import { SoundManager, SoundName } from '../audio'
 import type { ArrowTrack } from '../engine/moveSteps'
 import type { AnimationEntry } from '../store/game.store'
 import { useGameStore } from '../store/game.store'
+import { useSettingsStore } from '../store/settings.store'
 
 const DURATION_PER_STEP_MS = 45
 const SLIDE_TO_BLOCKER_MS = 150
@@ -37,12 +39,16 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
   const isTrackAnimating = animEntry !== null && track !== null
 
   const onValidComplete = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    if (useSettingsStore.getState().hapticsEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    }
     completeValidAnimation(arrowId)
   }, [completeValidAnimation, arrowId])
 
   const onInvalidComplete = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    if (useSettingsStore.getState().hapticsEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    }
     completeInvalidAnimation(arrowId)
   }, [completeInvalidAnimation, arrowId])
 
@@ -65,7 +71,10 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         translateX.value = 0
         translateY.value = 0
 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+        if (useSettingsStore.getState().hapticsEnabled) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+        }
+        SoundManager.play(SoundName.ValidMove)
 
         progress.value = withTiming(
           animEntry.maxProgress,
@@ -85,6 +94,8 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         progress.value = 0
         translateX.value = 0
         translateY.value = 0
+
+        SoundManager.play(SoundName.InvalidMove)
 
         progress.value = withSequence(
           withTiming(animEntry.maxProgress, {
