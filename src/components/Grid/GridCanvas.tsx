@@ -6,6 +6,9 @@ import { directionDelta } from '../../engine/types'
 import type { ThemeColors } from '../../theme/colors'
 import { ArrowPath } from './ArrowPath'
 
+// Lines extend far beyond the canvas so they appear infinite even when zoomed/panned
+const LINE_EXTENT = 10000
+
 interface GridCanvasProps {
   readonly gridState: GridState
   readonly selectedArrowId: string | null
@@ -16,6 +19,8 @@ interface GridCanvasProps {
   readonly cellSize: number
   readonly offsetX: number
   readonly offsetY: number
+  readonly canvasMarginLeft?: number
+  readonly canvasMarginTop?: number
   readonly colors: ThemeColors
   readonly showGridLines: boolean
 }
@@ -30,6 +35,8 @@ export function GridCanvas({
   cellSize,
   offsetX,
   offsetY,
+  canvasMarginLeft = 0,
+  canvasMarginTop = 0,
   colors,
   showGridLines,
 }: GridCanvasProps) {
@@ -42,7 +49,7 @@ export function GridCanvas({
     }))
   }, [gridState.width, gridState.height, cellSize, offsetX, offsetY])
 
-  // Grid lines through cell centers — extend past puzzle bounds to full canvas
+  // Grid lines through cell centers — extend far beyond puzzle for infinite appearance
   const lineElements = useMemo(() => {
     if (!showGridLines) return null
     const lines: { key: string; p1: { x: number; y: number }; p2: { x: number; y: number } }[] = []
@@ -51,31 +58,22 @@ export function GridCanvas({
       const y = offsetY + row * cellSize + cellSize / 2
       lines.push({
         key: `h${row}`,
-        p1: { x: 0, y },
-        p2: { x: canvasWidth, y },
+        p1: { x: -LINE_EXTENT, y },
+        p2: { x: LINE_EXTENT, y },
       })
     }
     for (let col = 0; col < gridState.width; col++) {
       const x = offsetX + col * cellSize + cellSize / 2
       lines.push({
         key: `v${col}`,
-        p1: { x, y: 0 },
-        p2: { x, y: canvasHeight },
+        p1: { x, y: -LINE_EXTENT },
+        p2: { x, y: LINE_EXTENT },
       })
     }
     return lines
-  }, [
-    showGridLines,
-    gridState.width,
-    gridState.height,
-    cellSize,
-    offsetX,
-    offsetY,
-    canvasWidth,
-    canvasHeight,
-  ])
+  }, [showGridLines, gridState.width, gridState.height, cellSize, offsetX, offsetY])
 
-  // Direction preview line: from arrow head past puzzle edges to canvas boundary
+  // Direction preview line: from arrow head extending infinitely in head direction
   const previewLine = useMemo(() => {
     if (!previewArrowId) return null
     const arrow = gridState.arrows.find((a) => a.id === previewArrowId)
@@ -88,22 +86,21 @@ export function GridCanvas({
     const headCx = offsetX + head.col * cellSize + cellSize / 2
     const headCy = offsetY + head.row * cellSize + cellSize / 2
 
-    let endX = headCx
-    let endY = headCy
-    if (delta.col !== 0) {
-      endX = delta.col > 0 ? canvasWidth : 0
-      endY = headCy
-    }
-    if (delta.row !== 0) {
-      endY = delta.row > 0 ? canvasHeight : 0
-      endX = headCx
-    }
+    const endX = headCx + delta.col * LINE_EXTENT
+    const endY = headCy + delta.row * LINE_EXTENT
 
     return { p1: { x: headCx, y: headCy }, p2: { x: endX, y: endY } }
-  }, [previewArrowId, gridState.arrows, cellSize, offsetX, offsetY, canvasWidth, canvasHeight])
+  }, [previewArrowId, gridState.arrows, cellSize, offsetX, offsetY])
 
   return (
-    <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
+    <Canvas
+      style={{
+        width: canvasWidth,
+        height: canvasHeight,
+        marginLeft: canvasMarginLeft,
+        marginTop: canvasMarginTop,
+      }}
+    >
       {dotElements.map((dot) => (
         <Circle key={dot.key} cx={dot.cx} cy={dot.cy} r={2} color={colors.gridLine} />
       ))}

@@ -53,9 +53,6 @@ export default function GameScreen() {
 
   const { width: screenWidth } = useWindowDimensions()
   const padding = 20
-
-  // Canvas uses full screen width; puzzle is inset via offsetX
-  const canvasWidth = screenWidth
   const playableWidth = screenWidth - padding * 2
 
   const cellSize = useMemo(() => {
@@ -65,18 +62,27 @@ export default function GameScreen() {
     return Math.floor(Math.min(maxW, maxH))
   }, [gridState, playableWidth])
 
-  const offsetX = useMemo(() => {
-    if (!gridState) return 0
-    return (canvasWidth - cellSize * gridState.width) / 2
-  }, [gridState, cellSize, canvasWidth])
-
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
-  const [containerLayout, setContainerLayout] = useState({ width: canvasWidth, height: 0 })
+  const [containerLayout, setContainerLayout] = useState({ width: screenWidth, height: 0 })
 
-  // Canvas fills the full container; puzzle is centered vertically via offsetY
-  const canvasHeight = containerLayout.height || gridHeight
-  const offsetY = Math.max(0, (canvasHeight - gridHeight) / 2)
+  // The Animated.View (gesture target) matches the visible content area.
+  // The Skia Canvas is larger (with overflow visible) so grid/preview lines extend
+  // past the puzzle. The parent container clips with overflow: 'hidden'.
+  const CANVAS_OVERFLOW = 500
+  const contentWidth = screenWidth
+  const contentHeight = containerLayout.height || gridHeight
+
+  const canvasWidth = contentWidth + CANVAS_OVERFLOW * 2
+  const canvasHeight = contentHeight + CANVAS_OVERFLOW * 2
+
+  const gridPixelWidth = gridState ? cellSize * gridState.width : 0
+  // Puzzle position within the visible content area
+  const puzzleOffsetX = (contentWidth - gridPixelWidth) / 2
+  const puzzleOffsetY = Math.max(0, (contentHeight - gridHeight) / 2)
+  // Canvas offset = puzzle position shifted by CANVAS_OVERFLOW (canvas starts before visible area)
+  const offsetX = CANVAS_OVERFLOW + puzzleOffsetX
+  const offsetY = CANVAS_OVERFLOW + puzzleOffsetY
   const [showGridLines, setShowGridLines] = useState(false)
   const [previewArrowId, setPreviewArrowId] = useState<string | null>(null)
 
@@ -107,15 +113,17 @@ export default function GameScreen() {
     setPreviewArrowId(arrowId)
   }, [])
 
+  // Gestures operate on the Animated.View (visible content area).
+  // Touch coordinates map to puzzleOffsetX/Y within that view.
   const { gesture, animatedStyle } = useGridGestures({
     gridState,
     cellSize,
-    offsetX,
-    offsetY,
-    contentWidth: canvasWidth,
-    contentHeight: canvasHeight,
-    containerWidth: containerLayout.width,
-    containerHeight: containerLayout.height || canvasHeight,
+    offsetX: puzzleOffsetX,
+    offsetY: puzzleOffsetY,
+    contentWidth: contentWidth,
+    contentHeight: contentHeight,
+    containerWidth: containerLayout.width || screenWidth,
+    containerHeight: contentHeight,
     onArrowTap: handleArrowTap,
     onPreviewArrow: handlePreviewArrow,
   })
@@ -273,7 +281,12 @@ export default function GameScreen() {
       {/* Game grid */}
       <View style={[styles.gridContainer, styles.gridClip]} onLayout={handleContainerLayout}>
         <GestureDetector gesture={gesture}>
-          <Animated.View style={[{ width: canvasWidth, height: canvasHeight }, animatedStyle]}>
+          <Animated.View
+            style={[
+              { width: contentWidth, height: contentHeight, overflow: 'visible' },
+              animatedStyle,
+            ]}
+          >
             <GridCanvas
               gridState={gridState}
               selectedArrowId={selectedArrowId}
@@ -284,6 +297,8 @@ export default function GameScreen() {
               cellSize={cellSize}
               offsetX={offsetX}
               offsetY={offsetY}
+              canvasMarginLeft={-CANVAS_OVERFLOW}
+              canvasMarginTop={-CANVAS_OVERFLOW}
               colors={colors}
               showGridLines={showGridLines}
             />
