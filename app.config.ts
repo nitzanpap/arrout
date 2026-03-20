@@ -35,7 +35,7 @@ const config: ExpoConfig = {
       projectId: '74f4c978-7c3a-4233-b1ea-0fc75b5d1514',
     },
   },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', 'expo-audio'],
   experiments: {
     typedRoutes: true,
   },

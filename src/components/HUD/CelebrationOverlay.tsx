@@ -14,7 +14,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
+import { SoundManager, SoundName } from '../../audio'
 import type { Difficulty } from '../../engine/types'
+import { useSettingsStore } from '../../store/settings.store'
 import type { ThemeColors } from '../../theme/colors'
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -134,12 +136,18 @@ export function CelebrationOverlay({
   useEffect(() => {
     if (!hasPlayedHaptic.current) {
       hasPlayedHaptic.current = true
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      if (useSettingsStore.getState().hapticsEnabled) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      }
+      SoundManager.play(SoundName.LevelComplete)
     }
   }, [])
 
   const handleNextPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    if (useSettingsStore.getState().hapticsEnabled) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    }
+    SoundManager.play(SoundName.Tap)
     buttonScale.value = withSequence(
       withTiming(0.92, { duration: 80 }),
       withSpring(1, { damping: 10, stiffness: 300 })
