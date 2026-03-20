@@ -37,7 +37,8 @@
       "!**/ios",
       "!**/android",
       "!**/bun.lock",
-      "!**/bundled.json"
+      "!**/bundled.json",
+      "!.claude/worktrees"
     ]
   }
 }
