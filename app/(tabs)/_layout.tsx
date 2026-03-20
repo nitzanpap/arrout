@@ -56,7 +56,6 @@ export default function TabLayout() {
       <ArrowFieldBackground colors={colors} ripple={ripple} />
       <Tabs
         screenOptions={{
-          lazy: false,
           headerShown: false,
           sceneStyle: styles.transparent,
           tabBarStyle: {

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
 
@@ -48,8 +48,10 @@ export default function ChallengeScreen() {
     [colors]
   )
 
+  const insets = useSafeAreaInsets()
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Daily Challenge</Text>
         <Text style={[styles.date, d.date]}>{today}</Text>
@@ -74,7 +76,7 @@ export default function ChallengeScreen() {
           </Pressable>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 

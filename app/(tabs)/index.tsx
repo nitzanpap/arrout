@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { difficultyForLevel } from '../../src/generator/difficulty'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
@@ -33,8 +33,10 @@ export default function HomeScreen() {
     [colors]
   )
 
+  const insets = useSafeAreaInsets()
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Text style={[styles.logo, dynamicStyles.logo]}>Arrout</Text>
         <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Slide the arrows</Text>
@@ -66,7 +68,7 @@ export default function HomeScreen() {
           <Text style={[styles.playButtonText, dynamicStyles.playButtonText]}>Play</Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 
