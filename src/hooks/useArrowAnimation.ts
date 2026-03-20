@@ -49,7 +49,6 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     if (useSettingsStore.getState().hapticsEnabled) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
     }
-    SoundManager.play(SoundName.InvalidMove)
     completeInvalidAnimation(arrowId)
   }, [completeInvalidAnimation, arrowId])
 
@@ -95,6 +94,8 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         progress.value = 0
         translateX.value = 0
         translateY.value = 0
+
+        SoundManager.play(SoundName.InvalidMove)
 
         progress.value = withSequence(
           withTiming(animEntry.maxProgress, {
