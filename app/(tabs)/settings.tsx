@@ -15,17 +15,26 @@ function ToggleRow({
   label: string
   value: boolean
   onToggle: () => void
-  colors: { textPrimary: string; accent: string; buttonBg: string; textSecondary: string }
+  colors: {
+    textPrimary: string
+    accent: string
+    buttonBg: string
+    textSecondary: string
+    toggleKnob: string
+    toggleTrackOff: string
+  }
 }) {
   return (
     <Pressable style={styles.row} onPress={onToggle}>
       <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{label}</Text>
-      <View style={[styles.toggle, { backgroundColor: value ? colors.accent : colors.buttonBg }]}>
+      <View
+        style={[styles.toggle, { backgroundColor: value ? colors.accent : colors.toggleTrackOff }]}
+      >
         <View
           style={[
             styles.toggleKnob,
             {
-              backgroundColor: value ? colors.textPrimary : colors.textSecondary,
+              backgroundColor: colors.toggleKnob,
               alignSelf: value ? 'flex-end' : 'flex-start',
             },
           ]}
@@ -66,7 +75,7 @@ function ThemeSelector({
             <Text
               style={[
                 styles.themeButtonText,
-                { color: isActive ? colors.textPrimary : colors.textSecondary },
+                { color: isActive ? '#FFFFFF' : colors.textSecondary },
               ]}
             >
               {option.label}
@@ -174,6 +183,11 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 2,
+    elevation: 2,
   },
   aboutText: {
     fontSize: 14,

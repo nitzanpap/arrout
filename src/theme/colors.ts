@@ -22,31 +22,35 @@ export interface ThemeColors {
   readonly progressBarTrack: string
   readonly gridLinesFull: string
   readonly directionPreview: string
+  readonly toggleKnob: string
+  readonly toggleTrackOff: string
   /** @deprecated dots are now always shown */
   readonly showGridDots?: boolean
 }
 
 export const lightColors: ThemeColors = {
-  background: '#FFFFFF',
-  headerBand: '#EEEAF8',
+  background: '#F5F3FA',
+  headerBand: '#E6E1F2',
   textPrimary: '#1A1A2E',
-  textSecondary: '#8B8DA3',
+  textSecondary: '#7B7D96',
   accent: '#6C5CE7',
   arrowColor: '#1A1A2E',
   arrowError: '#FF6B8A',
   arrowHint: '#3B82F6',
   heartFilled: '#FF4A6A',
   heartEmpty: '#C7C2E0',
-  buttonBg: '#E8E3F8',
+  buttonBg: '#C8C0E0',
   buttonIcon: '#6C5CE7',
-  overlayBg: 'rgba(255,255,255,0.92)',
+  overlayBg: 'rgba(245,243,250,0.92)',
   overlayCard: '#FFFFFF',
   gridLine: 'rgba(0,0,0,0.08)',
   difficultyLabel: '#E8457A',
   progressBar: '#6C5CE7',
-  progressBarTrack: 'rgba(108, 92, 231, 0.12)',
+  progressBarTrack: 'rgba(108, 92, 231, 0.32)',
   gridLinesFull: 'rgba(0, 0, 0, 0.10)',
   directionPreview: 'rgba(59, 130, 246, 0.35)',
+  toggleKnob: '#FFFFFF',
+  toggleTrackOff: '#C8C4D6',
   showGridDots: true,
 }
 
@@ -71,6 +75,8 @@ export const darkColors: ThemeColors = {
   progressBarTrack: 'rgba(123, 119, 255, 0.15)',
   gridLinesFull: 'rgba(200, 206, 255, 0.10)',
   directionPreview: 'rgba(96, 165, 250, 0.4)',
+  toggleKnob: '#FFFFFF',
+  toggleTrackOff: '#3A3D55',
   showGridDots: false,
 }
 

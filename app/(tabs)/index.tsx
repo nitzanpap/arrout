@@ -27,6 +27,7 @@ export default function HomeScreen() {
       difficulty: { color: colors.accent },
       streakBg: { backgroundColor: colors.headerBand },
       streakLabel: { color: colors.textSecondary },
+      streakValue: { color: colors.textPrimary },
       playButton: { backgroundColor: colors.accent },
       playButtonText: { color: '#FFFFFF' },
     }),
@@ -51,7 +52,7 @@ export default function HomeScreen() {
         {streak > 0 && (
           <View style={[styles.streakContainer, dynamicStyles.streakBg]}>
             <Text style={[styles.streakLabel, dynamicStyles.streakLabel]}>Streak</Text>
-            <Text style={styles.streakValue}>{streak}</Text>
+            <Text style={[styles.streakValue, dynamicStyles.streakValue]}>{streak}</Text>
           </View>
         )}
 
@@ -119,7 +120,6 @@ const styles = StyleSheet.create({
   streakValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFEAA7',
   },
   playButton: {
     paddingHorizontal: 80,
