@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { removeArrow } from '../engine/grid'
-import { canMove, executeMove } from '../engine/move'
+import { canMove, computeDistanceToBlocker, executeMove } from '../engine/move'
+import type { ArrowTrack } from '../engine/moveSteps'
+import { extractPartialTrack, extractTrack } from '../engine/moveSteps'
 import type { GridState, Level } from '../engine/types'
 
 const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
@@ -13,9 +15,13 @@ function debugLog(tag: string, ...args: unknown[]) {
 
 export type GameStatus = 'idle' | 'playing' | 'won' | 'failed'
 
+const MIN_BUMP_RATIO = 0.3
+
 export interface AnimationEntry {
   readonly type: 'valid' | 'invalid'
   readonly pendingFinalState: GridState | null // only for valid
+  readonly track: ArrowTrack | null
+  readonly maxProgress: number
 }
 
 interface GameState {
@@ -110,10 +116,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       const result = executeMove(arrowId, projectedGridState)
       debugLog('makeMove', `valid move, arrowRemoved=${result.arrowRemoved}`)
 
+      const arrowTrack = extractTrack(arrowId, projectedGridState)
+      const maxProgress = arrowTrack ? arrowTrack.positions.length - arrowTrack.arrowLength : 0
+
       const newAnimations = new Map(activeAnimations)
       newAnimations.set(arrowId, {
         type: 'valid',
         pendingFinalState: result.nextState,
+        track: arrowTrack,
+        maxProgress,
       })
 
       set({
@@ -124,10 +135,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     } else {
       debugLog('makeMove', `invalid move for arrow=${arrowId}`)
 
+      const blockerCells = computeDistanceToBlocker(arrowId, projectedGridState)
+      const maxProgress = blockerCells > 0 ? blockerCells : MIN_BUMP_RATIO
+      const partialTrack = extractPartialTrack(arrowId, projectedGridState, maxProgress)
+
       const newAnimations = new Map(activeAnimations)
       newAnimations.set(arrowId, {
         type: 'invalid',
         pendingFinalState: null,
+        track: partialTrack,
+        maxProgress,
       })
 
       set({

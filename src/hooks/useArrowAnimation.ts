@@ -1,16 +1,13 @@
 import * as Haptics from 'expo-haptics'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Easing, runOnJS, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
-import { computeDistanceToBlocker } from '../engine/move'
 import type { ArrowTrack } from '../engine/moveSteps'
-import { extractPartialTrack, extractTrack } from '../engine/moveSteps'
 import type { AnimationEntry } from '../store/game.store'
 import { useGameStore } from '../store/game.store'
 
 const DURATION_PER_STEP_MS = 45
 const SLIDE_TO_BLOCKER_MS = 150
 const SLIDE_BACK_MS = 150
-const MIN_BUMP_RATIO = 0.3
 
 export interface ArrowAnimationState {
   readonly translateX: { value: number }
@@ -25,31 +22,27 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
   const translateY = useSharedValue(0)
   const progress = useSharedValue(0)
 
-  const [track, setTrack] = useState<ArrowTrack | null>(null)
-  const [isTrackAnimating, setIsTrackAnimating] = useState(false)
-
   const animEntry = useGameStore(
     (s) => s.activeAnimations.get(arrowId) ?? null
   ) as AnimationEntry | null
 
-  const gridState = useGameStore((s) => s.gridState)
   const completeValidAnimation = useGameStore((s) => s.completeValidAnimation)
   const completeInvalidAnimation = useGameStore((s) => s.completeInvalidAnimation)
 
   const hasTriggered = useRef(false)
   const prevEntryRef = useRef<AnimationEntry | null>(null)
 
+  // Derive track directly from animEntry — no extra render cycle
+  const track = animEntry?.track ?? null
+  const isTrackAnimating = animEntry !== null && track !== null
+
   const onValidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    setIsTrackAnimating(false)
-    setTrack(null)
     completeValidAnimation(arrowId)
   }, [completeValidAnimation, arrowId])
 
   const onInvalidComplete = useCallback(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-    setIsTrackAnimating(false)
-    setTrack(null)
     completeInvalidAnimation(arrowId)
   }, [completeInvalidAnimation, arrowId])
 
@@ -64,20 +57,10 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     hasTriggered.current = true
     prevEntryRef.current = animEntry
 
-    if (!gridState || cellSize === 0) return
-
-    const arrow = gridState.arrows.find((a) => a.id === arrowId)
-    if (!arrow) return
+    if (cellSize === 0) return
 
     if (animEntry.type === 'valid') {
-      const arrowTrack = extractTrack(arrowId, gridState)
-
-      if (arrowTrack && arrowTrack.positions.length > arrowTrack.arrowLength) {
-        const numSteps = arrowTrack.positions.length - arrowTrack.arrowLength
-
-        setTrack(arrowTrack)
-        setIsTrackAnimating(true)
-
+      if (animEntry.track && animEntry.maxProgress > 0) {
         progress.value = 0
         translateX.value = 0
         translateY.value = 0
@@ -85,9 +68,9 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
 
         progress.value = withTiming(
-          numSteps,
+          animEntry.maxProgress,
           {
-            duration: numSteps * DURATION_PER_STEP_MS,
+            duration: animEntry.maxProgress * DURATION_PER_STEP_MS,
             easing: Easing.linear,
           },
           (finished) => {
@@ -98,22 +81,13 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         onValidComplete()
       }
     } else if (animEntry.type === 'invalid') {
-      const blockerCells = computeDistanceToBlocker(arrowId, gridState)
-      const maxProgress = blockerCells > 0 ? blockerCells : MIN_BUMP_RATIO
-
-      const partialTrack = extractPartialTrack(arrowId, gridState, maxProgress)
-
-      if (partialTrack) {
-        setTrack(partialTrack)
-        setIsTrackAnimating(true)
-
+      if (animEntry.track) {
         progress.value = 0
         translateX.value = 0
         translateY.value = 0
 
-        // Snake forward to blocker, then reverse back to origin
         progress.value = withSequence(
-          withTiming(maxProgress, {
+          withTiming(animEntry.maxProgress, {
             duration: SLIDE_TO_BLOCKER_MS,
             easing: Easing.out(Easing.cubic),
           }),
@@ -129,17 +103,7 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
         onInvalidComplete()
       }
     }
-  }, [
-    animEntry,
-    arrowId,
-    gridState,
-    cellSize,
-    translateX,
-    translateY,
-    progress,
-    onValidComplete,
-    onInvalidComplete,
-  ])
+  }, [animEntry, cellSize, translateX, translateY, progress, onValidComplete, onInvalidComplete])
 
   return { translateX, translateY, progress, track, isTrackAnimating }
 }
