@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
 
@@ -75,8 +75,10 @@ export default function CollectionScreen() {
     [colors]
   )
 
+  const insets = useSafeAreaInsets()
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Collection</Text>
 
@@ -98,7 +100,7 @@ export default function CollectionScreen() {
         <AwardBadge label="Perfect Play" tier={perfectPlayTier} maxTier={10} colors={colors} />
         <AwardBadge label="Unstoppable" tier={unstoppableTier} maxTier={10} colors={colors} />
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 

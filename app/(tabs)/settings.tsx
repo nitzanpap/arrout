@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { version as appVersion } from '../../package.json'
 import type { ThemePreference } from '../../src/store/settings.store'
 import { useSettingsStore } from '../../src/store/settings.store'
@@ -97,8 +97,10 @@ export default function SettingsScreen() {
     [colors]
   )
 
+  const insets = useSafeAreaInsets()
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
         <Text style={[styles.title, d.title]}>Settings</Text>
 
@@ -123,7 +125,7 @@ export default function SettingsScreen() {
           <Text style={[styles.aboutText, d.aboutText]}>A minimalist arrow puzzle game</Text>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   )
 }
 
