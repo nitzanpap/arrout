@@ -48,3 +48,5 @@ build-*.apk
 build-*.aab
 build-*.ipa
 build-*.tar.gz
+
+.claude/
