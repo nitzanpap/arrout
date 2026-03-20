@@ -72,6 +72,7 @@ export default function GameScreen() {
 
   const [containerLayout, setContainerLayout] = useState({ width: canvasWidth, height: 0 })
   const [showGridLines, setShowGridLines] = useState(false)
+  const [previewArrowId, setPreviewArrowId] = useState<string | null>(null)
 
   const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout
@@ -96,6 +97,10 @@ export default function GameScreen() {
     [status, makeMove, resetInactivityTimer]
   )
 
+  const handlePreviewArrow = useCallback((arrowId: string | null) => {
+    setPreviewArrowId(arrowId)
+  }, [])
+
   const { gesture, animatedStyle } = useGridGestures({
     gridState,
     cellSize,
@@ -105,6 +110,7 @@ export default function GameScreen() {
     containerWidth: containerLayout.width,
     containerHeight: containerLayout.height || gridHeight,
     onArrowTap: handleArrowTap,
+    onPreviewArrow: handlePreviewArrow,
   })
 
   const handleUndo = useCallback(() => {
@@ -265,6 +271,7 @@ export default function GameScreen() {
               gridState={gridState}
               selectedArrowId={selectedArrowId}
               errorArrowIds={errorArrowIds}
+              previewArrowId={previewArrowId}
               canvasWidth={canvasWidth}
               cellSize={cellSize}
               offsetX={offsetX}

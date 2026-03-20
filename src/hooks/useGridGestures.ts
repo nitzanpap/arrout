@@ -33,6 +33,7 @@ interface UseGridGesturesOptions {
   readonly containerWidth: number
   readonly containerHeight: number
   readonly onArrowTap: (arrowId: string) => void
+  readonly onPreviewArrow: (arrowId: string | null) => void
 }
 
 export function useGridGestures({
@@ -44,6 +45,7 @@ export function useGridGestures({
   containerWidth,
   containerHeight,
   onArrowTap,
+  onPreviewArrow,
 }: UseGridGesturesOptions) {
   const scale = useSharedValue(1)
   const translateX = useSharedValue(0)
@@ -59,6 +61,12 @@ export function useGridGestures({
   gridStateRef.current = gridState
   const onArrowTapRef = useRef(onArrowTap)
   onArrowTapRef.current = onArrowTap
+  const onPreviewArrowRef = useRef(onPreviewArrow)
+  onPreviewArrowRef.current = onPreviewArrow
+
+  // Track the arrow that was long-pressed so we can cancel if finger drifts
+  const longPressArrowRef = useRef<string | null>(null)
+  const longPressStartRef = useRef<{ col: number; row: number } | null>(null)
 
   const overshootX = containerWidth * PAN_OVERSHOOT_RATIO
   const overshootY = containerHeight * PAN_OVERSHOOT_RATIO
@@ -130,6 +138,24 @@ export function useGridGestures({
     ]
   )
 
+  // Helper: find arrow ID at canvas coordinates
+  const findArrowAt = useRef((x: number, y: number): string | null => {
+    const gs = gridStateRef.current
+    if (!gs || cellSize === 0) return null
+    const col = Math.floor((x - offsetX) / cellSize)
+    const row = Math.floor(y / cellSize)
+    if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
+    return gs.cells[row][col].arrowId
+  })
+  findArrowAt.current = (x: number, y: number): string | null => {
+    const gs = gridStateRef.current
+    if (!gs || cellSize === 0) return null
+    const col = Math.floor((x - offsetX) / cellSize)
+    const row = Math.floor(y / cellSize)
+    if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
+    return gs.cells[row][col].arrowId
+  }
+
   const tap = useMemo(
     () =>
       Gesture.Tap()
@@ -164,9 +190,54 @@ export function useGridGestures({
     [cellSize, offsetX]
   )
 
+  // Long-press: show direction preview, drag-to-cancel, release-to-fire
+  const longPress = useMemo(
+    () =>
+      Gesture.LongPress()
+        .hitSlop(HIT_SLOP)
+        .minDuration(250)
+        .runOnJS(true)
+        .onStart((e) => {
+          const arrowId = findArrowAt.current(e.x, e.y)
+          if (!arrowId) return
+          longPressArrowRef.current = arrowId
+          const col = Math.floor((e.x - offsetX) / cellSize)
+          const row = Math.floor(e.y / cellSize)
+          longPressStartRef.current = { col, row }
+          onPreviewArrowRef.current(arrowId)
+          debugLog('longPress', `preview arrow ${arrowId}`)
+        })
+        .onEnd((e, success) => {
+          const arrowId = longPressArrowRef.current
+          if (!arrowId) return
+
+          // Check if finger is still over the same arrow
+          const currentArrow = findArrowAt.current(e.x, e.y)
+          if (success && currentArrow === arrowId) {
+            debugLog('longPress', `fire move ${arrowId}`)
+            onArrowTapRef.current(arrowId)
+          } else {
+            debugLog('longPress', `cancelled — finger moved away`)
+          }
+
+          longPressArrowRef.current = null
+          longPressStartRef.current = null
+          onPreviewArrowRef.current(null)
+        })
+        .onFinalize(() => {
+          // Ensure cleanup on any interruption
+          if (longPressArrowRef.current) {
+            longPressArrowRef.current = null
+            longPressStartRef.current = null
+            onPreviewArrowRef.current(null)
+          }
+        }),
+    [cellSize, offsetX]
+  )
+
   const gesture = useMemo(
-    () => Gesture.Race(Gesture.Simultaneous(pinch, pan), tap),
-    [pinch, pan, tap]
+    () => Gesture.Race(Gesture.Simultaneous(pinch, pan), Gesture.Exclusive(longPress, tap)),
+    [pinch, pan, longPress, tap]
   )
 
   // Reset pan/zoom when content dimensions change (new level)

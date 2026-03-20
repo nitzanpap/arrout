@@ -21,6 +21,7 @@ export interface ThemeColors {
   readonly progressBar: string
   readonly progressBarTrack: string
   readonly gridLinesFull: string
+  readonly directionPreview: string
   /** @deprecated dots are now always shown */
   readonly showGridDots?: boolean
 }
@@ -40,11 +41,12 @@ export const lightColors: ThemeColors = {
   buttonIcon: '#6C5CE7',
   overlayBg: 'rgba(255,255,255,0.92)',
   overlayCard: '#FFFFFF',
-  gridLine: 'rgba(0,0,0,0.04)',
+  gridLine: 'rgba(0,0,0,0.08)',
   difficultyLabel: '#E8457A',
   progressBar: '#6C5CE7',
   progressBarTrack: 'rgba(108, 92, 231, 0.12)',
-  gridLinesFull: 'rgba(0, 0, 0, 0.06)',
+  gridLinesFull: 'rgba(0, 0, 0, 0.10)',
+  directionPreview: 'rgba(59, 130, 246, 0.35)',
   showGridDots: true,
 }
 
@@ -63,11 +65,12 @@ export const darkColors: ThemeColors = {
   buttonIcon: '#BFC3E0',
   overlayBg: 'rgba(15,17,32,0.9)',
   overlayCard: '#161929',
-  gridLine: 'rgba(200,206,255,0.12)',
+  gridLine: 'rgba(200,206,255,0.18)',
   difficultyLabel: '#FF6B8A',
   progressBar: '#7B77FF',
   progressBarTrack: 'rgba(123, 119, 255, 0.15)',
-  gridLinesFull: 'rgba(200, 206, 255, 0.06)',
+  gridLinesFull: 'rgba(200, 206, 255, 0.10)',
+  directionPreview: 'rgba(96, 165, 250, 0.4)',
   showGridDots: false,
 }
 
