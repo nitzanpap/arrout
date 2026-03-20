@@ -3,15 +3,17 @@ import { useCallback, useMemo, useState } from 'react'
 import type { LayoutChangeEvent } from 'react-native'
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
+import Animated, { FadeIn, FadeOut, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GridCanvas } from '../src/components/Grid/GridCanvas'
+import { CelebrationOverlay } from '../src/components/HUD/CelebrationOverlay'
 import { Hearts } from '../src/components/HUD/Hearts'
-import { ChevronLeftIcon, RestartIcon } from '../src/components/HUD/Icons'
+import { ChevronLeftIcon, GridIcon, LightbulbIcon, UndoIcon } from '../src/components/HUD/Icons'
 import type { Difficulty } from '../src/engine/types'
 import { useGridGestures } from '../src/hooks/useGridGestures'
 import { useInactivityHint } from '../src/hooks/useInactivityHint'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
+import { getLevel } from '../src/levels'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
 import { useThemeColors } from '../src/theme/colors'
@@ -32,6 +34,7 @@ export default function GameScreen() {
   const { isLoading, error } = useLevelLoader(levelNumber)
 
   const gridState = useGameStore((s) => s.gridState)
+  const initialGridState = useGameStore((s) => s.initialGridState)
   const heartsRemaining = useGameStore((s) => s.heartsRemaining)
   const status = useGameStore((s) => s.status)
   const selectedArrowId = useGameStore((s) => s.selectedArrowId)
@@ -41,6 +44,7 @@ export default function GameScreen() {
   const errorArrowIds = useGameStore((s) => s.errorArrowIds)
 
   const makeMove = useGameStore((s) => s.makeMove)
+  const undo = useGameStore((s) => s.undo)
   const restart = useGameStore((s) => s.restart)
   const selectArrow = useGameStore((s) => s.selectArrow)
   const storeUseHint = useGameStore((s) => s.useHint)
@@ -67,6 +71,7 @@ export default function GameScreen() {
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
   const [containerLayout, setContainerLayout] = useState({ width: canvasWidth, height: 0 })
+  const [showGridLines, setShowGridLines] = useState(false)
 
   const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout
@@ -74,6 +79,7 @@ export default function GameScreen() {
   }, [])
 
   const hasActiveAnimations = activeAnimations.size > 0
+  const canUndo = moveHistory.length > 0 && !hasActiveAnimations
 
   const { showHintFab, resetInactivityTimer, triggerHint } = useInactivityHint(
     status,
@@ -101,10 +107,10 @@ export default function GameScreen() {
     onArrowTap: handleArrowTap,
   })
 
-  const handleRestart = useCallback(() => {
-    restart()
+  const handleUndo = useCallback(() => {
+    undo()
     resetInactivityTimer()
-  }, [restart, resetInactivityTimer])
+  }, [undo, resetInactivityTimer])
 
   const handleNextLevel = useCallback(() => {
     if (level) {
@@ -114,13 +120,34 @@ export default function GameScreen() {
     router.replace({ pathname: '/game', params: { level: (levelNumber + 1).toString() } })
   }, [level, heartsRemaining, levelNumber, recordComplete, router])
 
+  const toggleGridLines = useCallback(() => {
+    setShowGridLines((prev) => !prev)
+  }, [])
+
+  // Next level info for celebration screen
+  const nextLevelDifficulty = useMemo<Difficulty | null>(() => {
+    try {
+      const next = getLevel(levelNumber + 1)
+      return next.difficulty
+    } catch {
+      return null
+    }
+  }, [levelNumber])
+
+  // Progress bar
+  const totalArrows = initialGridState?.arrows.length ?? 0
+  const remainingArrows = gridState?.arrows.length ?? 0
+  const progress = totalArrows > 0 ? (totalArrows - remainingArrows) / totalArrows : 0
+
+  const progressAnimatedStyle = useAnimatedStyle(() => ({
+    width: withTiming(`${progress * 100}%`, { duration: 300 }),
+  }))
+
   const dynamicStyles = useMemo(
     () => ({
       container: { backgroundColor: colors.background },
       headerBand: { backgroundColor: colors.headerBand },
       buttonBg: { backgroundColor: colors.buttonBg },
-      buttonIcon: { color: colors.buttonIcon },
-      levelText: { color: colors.accent },
       loadingText: { color: colors.textSecondary },
       errorText: { color: colors.arrowError },
       retryText: { color: colors.accent },
@@ -130,6 +157,9 @@ export default function GameScreen() {
       overlaySubtitle: { color: colors.textSecondary },
       nextButton: { backgroundColor: colors.accent },
       nextButtonText: { color: '#FFFFFF' },
+      difficultyText: { color: colors.difficultyLabel },
+      progressBarTrack: { backgroundColor: colors.progressBarTrack },
+      progressBarFill: { backgroundColor: colors.progressBar },
     }),
     [colors]
   )
@@ -157,10 +187,10 @@ export default function GameScreen() {
 
   return (
     <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      {/* Header band */}
+      {/* Header */}
       <View style={[styles.headerBand, dynamicStyles.headerBand]}>
         <View style={styles.topBar}>
-          {/* Left: back + restart buttons */}
+          {/* Left: back + undo buttons */}
           <View style={styles.leftButtons}>
             <Pressable
               style={({ pressed }) => [
@@ -170,35 +200,60 @@ export default function GameScreen() {
               ]}
               onPress={() => router.back()}
             >
-              <ChevronLeftIcon size={18} color={colors.buttonIcon} />
+              <ChevronLeftIcon size={20} color={colors.buttonIcon} />
             </Pressable>
             <Pressable
               style={({ pressed }) => [
                 styles.circleButton,
                 dynamicStyles.buttonBg,
-                hasActiveAnimations && styles.disabled,
-                pressed && !hasActiveAnimations && styles.buttonPressed,
+                !canUndo && styles.disabled,
+                pressed && canUndo && styles.buttonPressed,
               ]}
-              onPress={handleRestart}
-              disabled={hasActiveAnimations}
+              onPress={handleUndo}
+              disabled={!canUndo}
             >
-              <RestartIcon size={18} color={colors.buttonIcon} />
+              <UndoIcon size={20} color={colors.buttonIcon} />
             </Pressable>
           </View>
 
-          {/* Center: level label + difficulty + hearts */}
+          {/* Center: difficulty + hearts */}
           <View style={styles.centerInfo}>
-            <Text style={[styles.levelText, dynamicStyles.levelText]}>Level {levelNumber}</Text>
             {level?.difficulty && (
-              <Text style={[styles.difficultyText, { color: colors.textSecondary }]}>
+              <Text style={[styles.difficultyText, dynamicStyles.difficultyText]}>
                 {DIFFICULTY_LABELS[level.difficulty]}
               </Text>
             )}
             <Hearts remaining={heartsRemaining} colors={colors} />
           </View>
 
-          {/* Right: spacer to balance layout */}
-          <View style={styles.leftButtons} />
+          {/* Right: hint button */}
+          <View style={styles.rightButtons}>
+            {showHintFab && status === 'playing' ? (
+              <Animated.View entering={FadeIn.duration(300)} exiting={FadeOut.duration(200)}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.circleButton,
+                    dynamicStyles.buttonBg,
+                    hasActiveAnimations && styles.disabled,
+                    pressed && !hasActiveAnimations && styles.buttonPressed,
+                  ]}
+                  onPress={triggerHint}
+                  disabled={hasActiveAnimations}
+                >
+                  <LightbulbIcon size={20} color={colors.buttonIcon} />
+                </Pressable>
+              </Animated.View>
+            ) : (
+              <View style={styles.circleButton} />
+            )}
+          </View>
+        </View>
+
+        {/* Progress bar */}
+        <View style={[styles.progressBarTrack, dynamicStyles.progressBarTrack]}>
+          <Animated.View
+            style={[styles.progressBarFill, dynamicStyles.progressBarFill, progressAnimatedStyle]}
+          />
         </View>
       </View>
 
@@ -214,46 +269,36 @@ export default function GameScreen() {
               cellSize={cellSize}
               offsetX={offsetX}
               colors={colors}
+              showGridLines={showGridLines}
             />
           </Animated.View>
         </GestureDetector>
-        {showHintFab && status === 'playing' && (
-          <Animated.View
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            style={styles.hintFab}
+
+        {/* Grid toggle FAB */}
+        <View style={styles.gridFab}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.gridFabButton,
+              dynamicStyles.buttonBg,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={toggleGridLines}
           >
-            <Pressable
-              style={[
-                styles.hintFabButton,
-                { backgroundColor: colors.accent },
-                hasActiveAnimations && styles.disabled,
-              ]}
-              onPress={triggerHint}
-              disabled={hasActiveAnimations}
-            >
-              <Text style={styles.hintFabText}>?</Text>
-            </Pressable>
-          </Animated.View>
-        )}
+            <GridIcon size={22} color={colors.buttonIcon} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Win overlay */}
       {status === 'won' && (
-        <View style={[styles.overlay, dynamicStyles.overlayBg]}>
-          <View style={[styles.overlayCard, dynamicStyles.overlayCard]}>
-            <Text style={[styles.overlayTitle, dynamicStyles.overlayTitle]}>Level Complete!</Text>
-            <Text style={[styles.overlaySubtitle, dynamicStyles.overlaySubtitle]}>
-              {moveHistory.length} moves {heartsRemaining === 3 ? '(Perfect!)' : ''}
-            </Text>
-            <Pressable
-              style={[styles.nextButton, dynamicStyles.nextButton]}
-              onPress={handleNextLevel}
-            >
-              <Text style={[styles.nextButtonText, dynamicStyles.nextButtonText]}>Next Level</Text>
-            </Pressable>
-          </View>
-        </View>
+        <CelebrationOverlay
+          moveCount={moveHistory.length}
+          isPerfect={heartsRemaining === 3}
+          nextLevelNumber={levelNumber + 1}
+          nextDifficulty={nextLevelDifficulty}
+          colors={colors}
+          onNextLevel={handleNextLevel}
+        />
       )}
 
       {/* Fail overlay */}
@@ -293,24 +338,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   headerBand: {
-    paddingBottom: 12,
+    paddingBottom: 4,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   leftButtons: {
     flexDirection: 'row',
-    gap: 8,
-    width: 88,
+    gap: 10,
+    width: 96,
+  },
+  rightButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: 96,
   },
   circleButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -321,17 +372,23 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.4,
   },
-  difficultyText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   centerInfo: {
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  levelText: {
-    fontSize: 16,
-    fontWeight: '700',
+  difficultyText: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  progressBarTrack: {
+    height: 2,
+    marginHorizontal: 20,
+    marginTop: 4,
+    borderRadius: 1,
+  },
+  progressBarFill: {
+    height: 2,
+    borderRadius: 1,
   },
   gridContainer: {
     flex: 1,
@@ -340,6 +397,18 @@ const styles = StyleSheet.create({
   },
   gridClip: {
     overflow: 'hidden',
+  },
+  gridFab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+  },
+  gridFabButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -368,28 +437,6 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-  },
-  hintFab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-  },
-  hintFabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  hintFabText: {
-    color: '#FFFFFF',
-    fontSize: 22,
     fontWeight: '700',
   },
 })

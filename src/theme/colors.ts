@@ -17,6 +17,12 @@ export interface ThemeColors {
   readonly overlayBg: string
   readonly overlayCard: string
   readonly gridLine: string
+  readonly difficultyLabel: string
+  readonly progressBar: string
+  readonly progressBarTrack: string
+  readonly gridLinesFull: string
+  /** @deprecated dots are now always shown */
+  readonly showGridDots?: boolean
 }
 
 export const lightColors: ThemeColors = {
@@ -35,24 +41,34 @@ export const lightColors: ThemeColors = {
   overlayBg: 'rgba(255,255,255,0.92)',
   overlayCard: '#FFFFFF',
   gridLine: 'rgba(0,0,0,0.04)',
+  difficultyLabel: '#E8457A',
+  progressBar: '#6C5CE7',
+  progressBarTrack: 'rgba(108, 92, 231, 0.12)',
+  gridLinesFull: 'rgba(0, 0, 0, 0.06)',
+  showGridDots: true,
 }
 
 export const darkColors: ThemeColors = {
-  background: '#0F1120',
-  headerBand: '#161929',
+  background: '#141829',
+  headerBand: '#141829',
   textPrimary: '#EEF0FF',
   textSecondary: '#6C7099',
   accent: '#7B77FF',
-  arrowColor: '#8B8FC7',
+  arrowColor: '#A8ADDE',
   arrowError: '#FF4A6A',
   arrowHint: '#60A5FA',
   heartFilled: '#FF4A6A',
-  heartEmpty: '#2A2D42',
-  buttonBg: '#2A2D42',
-  buttonIcon: '#A0A4C8',
+  heartEmpty: '#3A3D55',
+  buttonBg: '#1E2238',
+  buttonIcon: '#BFC3E0',
   overlayBg: 'rgba(15,17,32,0.9)',
   overlayCard: '#161929',
-  gridLine: 'rgba(200,206,255,0.08)',
+  gridLine: 'rgba(200,206,255,0.12)',
+  difficultyLabel: '#FF6B8A',
+  progressBar: '#7B77FF',
+  progressBarTrack: 'rgba(123, 119, 255, 0.15)',
+  gridLinesFull: 'rgba(200, 206, 255, 0.06)',
+  showGridDots: false,
 }
 
 export function useResolvedScheme(): 'light' | 'dark' {

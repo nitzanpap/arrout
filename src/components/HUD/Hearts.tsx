@@ -8,7 +8,7 @@ interface HeartsProps {
   readonly colors: ThemeColors
 }
 
-const HEART_SIZE = 18
+const HEART_SIZE = 22
 
 export function Hearts({ remaining, total = 3, colors }: HeartsProps) {
   return (
@@ -27,7 +27,7 @@ export function Hearts({ remaining, total = 3, colors }: HeartsProps) {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 2,
+    gap: 8,
+    marginTop: 4,
   },
 })

@@ -16,9 +16,9 @@ interface ArrowPathProps {
 }
 
 const HINT_GLOW_ALPHA = 0.6
-const STROKE_WIDTH_RATIO = 0.06
-const MIN_STROKE_WIDTH = 2
-const HEAD_SIZE_RATIO = 0.15
+const STROKE_WIDTH_RATIO = 0.09
+const MIN_STROKE_WIDTH = 3
+const HEAD_SIZE_RATIO = 0.18
 
 export function ArrowPath({
   arrow,
@@ -36,7 +36,7 @@ export function ArrowPath({
 
   const strokeWidth = Math.max(MIN_STROKE_WIDTH, cellSize * STROKE_WIDTH_RATIO)
   const color = isError ? colors.arrowError : isSelected ? colors.arrowHint : colors.arrowColor
-  const opacity = isSelected ? 1 : 0.95
+  const opacity = 1
 
   // Static body path (used when NOT track-animating)
   const staticBodyPath = useMemo(() => {
@@ -194,7 +194,7 @@ export function ArrowPath({
           path={staticBodyPath}
           color={colors.arrowHint}
           style="stroke"
-          strokeWidth={strokeWidth + 6}
+          strokeWidth={strokeWidth + 8}
           strokeCap="round"
           strokeJoin="round"
           opacity={HINT_GLOW_ALPHA}
