@@ -28,6 +28,7 @@ interface UseGridGesturesOptions {
   readonly gridState: GridState | null
   readonly cellSize: number
   readonly offsetX: number
+  readonly offsetY: number
   readonly contentWidth: number
   readonly contentHeight: number
   readonly containerWidth: number
@@ -40,6 +41,7 @@ export function useGridGestures({
   gridState,
   cellSize,
   offsetX,
+  offsetY,
   contentWidth,
   contentHeight,
   containerWidth,
@@ -143,7 +145,7 @@ export function useGridGestures({
     const gs = gridStateRef.current
     if (!gs || cellSize === 0) return null
     const col = Math.floor((x - offsetX) / cellSize)
-    const row = Math.floor(y / cellSize)
+    const row = Math.floor((y - offsetY) / cellSize)
     if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
     return gs.cells[row][col].arrowId
   })
@@ -151,7 +153,7 @@ export function useGridGestures({
     const gs = gridStateRef.current
     if (!gs || cellSize === 0) return null
     const col = Math.floor((x - offsetX) / cellSize)
-    const row = Math.floor(y / cellSize)
+    const row = Math.floor((y - offsetY) / cellSize)
     if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
     return gs.cells[row][col].arrowId
   }
@@ -168,7 +170,7 @@ export function useGridGestures({
           // RNGH coordinates already account for Reanimated transforms on the Animated.View,
           // so e.x/e.y map directly to canvas-space positions — no inversion needed.
           const col = Math.floor((e.x - offsetX) / cellSize)
-          const row = Math.floor(e.y / cellSize)
+          const row = Math.floor((e.y - offsetY) / cellSize)
 
           if (row >= 0 && row < gs.height && col >= 0 && col < gs.width) {
             const cell = gs.cells[row][col]
@@ -187,7 +189,7 @@ export function useGridGestures({
           }
         }),
     // Stable deps — gridState and onArrowTap are read from refs, not closures
-    [cellSize, offsetX]
+    [cellSize, offsetX, offsetY]
   )
 
   // Long-press: show direction preview, drag-to-cancel, release-to-fire
@@ -202,7 +204,7 @@ export function useGridGestures({
           if (!arrowId) return
           longPressArrowRef.current = arrowId
           const col = Math.floor((e.x - offsetX) / cellSize)
-          const row = Math.floor(e.y / cellSize)
+          const row = Math.floor((e.y - offsetY) / cellSize)
           longPressStartRef.current = { col, row }
           onPreviewArrowRef.current(arrowId)
           debugLog('longPress', `preview arrow ${arrowId}`)
@@ -232,7 +234,7 @@ export function useGridGestures({
             onPreviewArrowRef.current(null)
           }
         }),
-    [cellSize, offsetX]
+    [cellSize, offsetX, offsetY]
   )
 
   const gesture = useMemo(

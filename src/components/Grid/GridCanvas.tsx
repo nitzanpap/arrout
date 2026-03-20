@@ -12,8 +12,10 @@ interface GridCanvasProps {
   readonly errorArrowIds: readonly string[]
   readonly previewArrowId: string | null
   readonly canvasWidth: number
+  readonly canvasHeight: number
   readonly cellSize: number
   readonly offsetX: number
+  readonly offsetY: number
   readonly colors: ThemeColors
   readonly showGridLines: boolean
 }
@@ -24,14 +26,13 @@ export function GridCanvas({
   errorArrowIds,
   previewArrowId,
   canvasWidth,
+  canvasHeight,
   cellSize,
   offsetX,
+  offsetY,
   colors,
   showGridLines,
 }: GridCanvasProps) {
-  const gridHeight = cellSize * gridState.height
-  const offsetY = 0
-
   // Dots at cell centers — always visible as subtle grid reference
   const dotElements = useMemo(() => {
     return Array.from({ length: gridState.width * gridState.height }, (_, idx) => ({
@@ -39,9 +40,9 @@ export function GridCanvas({
       cx: offsetX + (idx % gridState.width) * cellSize + cellSize / 2,
       cy: offsetY + Math.floor(idx / gridState.width) * cellSize + cellSize / 2,
     }))
-  }, [gridState.width, gridState.height, cellSize, offsetX])
+  }, [gridState.width, gridState.height, cellSize, offsetX, offsetY])
 
-  // Full grid lines through cell centers — extend past puzzle bounds to canvas edges
+  // Grid lines through cell centers — extend past puzzle bounds to full canvas
   const lineElements = useMemo(() => {
     if (!showGridLines) return null
     const lines: { key: string; p1: { x: number; y: number }; p2: { x: number; y: number } }[] = []
@@ -59,13 +60,22 @@ export function GridCanvas({
       lines.push({
         key: `v${col}`,
         p1: { x, y: 0 },
-        p2: { x, y: gridHeight },
+        p2: { x, y: canvasHeight },
       })
     }
     return lines
-  }, [showGridLines, gridState.width, gridState.height, cellSize, offsetX, canvasWidth, gridHeight])
+  }, [
+    showGridLines,
+    gridState.width,
+    gridState.height,
+    cellSize,
+    offsetX,
+    offsetY,
+    canvasWidth,
+    canvasHeight,
+  ])
 
-  // Direction preview line: from arrow head to board edge in the head's direction
+  // Direction preview line: from arrow head past puzzle edges to canvas boundary
   const previewLine = useMemo(() => {
     if (!previewArrowId) return null
     const arrow = gridState.arrows.find((a) => a.id === previewArrowId)
@@ -78,7 +88,6 @@ export function GridCanvas({
     const headCx = offsetX + head.col * cellSize + cellSize / 2
     const headCy = offsetY + head.row * cellSize + cellSize / 2
 
-    // Extend the line from the head to the canvas edge
     let endX = headCx
     let endY = headCy
     if (delta.col !== 0) {
@@ -86,15 +95,15 @@ export function GridCanvas({
       endY = headCy
     }
     if (delta.row !== 0) {
-      endY = delta.row > 0 ? gridHeight : 0
+      endY = delta.row > 0 ? canvasHeight : 0
       endX = headCx
     }
 
     return { p1: { x: headCx, y: headCy }, p2: { x: endX, y: endY } }
-  }, [previewArrowId, gridState.arrows, cellSize, offsetX, canvasWidth, gridHeight])
+  }, [previewArrowId, gridState.arrows, cellSize, offsetX, offsetY, canvasWidth, canvasHeight])
 
   return (
-    <Canvas style={{ width: canvasWidth, height: gridHeight }}>
+    <Canvas style={{ width: canvasWidth, height: canvasHeight }}>
       {dotElements.map((dot) => (
         <Circle key={dot.key} cx={dot.cx} cy={dot.cy} r={2} color={colors.gridLine} />
       ))}

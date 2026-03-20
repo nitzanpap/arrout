@@ -54,14 +54,16 @@ export default function GameScreen() {
   const { width: screenWidth } = useWindowDimensions()
   const padding = 20
 
-  const canvasWidth = screenWidth - padding * 2
+  // Canvas uses full screen width; puzzle is inset via offsetX
+  const canvasWidth = screenWidth
+  const playableWidth = screenWidth - padding * 2
 
   const cellSize = useMemo(() => {
     if (!gridState) return 0
-    const maxW = canvasWidth / gridState.width
-    const maxH = canvasWidth / gridState.height
+    const maxW = playableWidth / gridState.width
+    const maxH = playableWidth / gridState.height
     return Math.floor(Math.min(maxW, maxH))
-  }, [gridState, canvasWidth])
+  }, [gridState, playableWidth])
 
   const offsetX = useMemo(() => {
     if (!gridState) return 0
@@ -71,6 +73,10 @@ export default function GameScreen() {
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
   const [containerLayout, setContainerLayout] = useState({ width: canvasWidth, height: 0 })
+
+  // Canvas fills the full container; puzzle is centered vertically via offsetY
+  const canvasHeight = containerLayout.height || gridHeight
+  const offsetY = Math.max(0, (canvasHeight - gridHeight) / 2)
   const [showGridLines, setShowGridLines] = useState(false)
   const [previewArrowId, setPreviewArrowId] = useState<string | null>(null)
 
@@ -105,10 +111,11 @@ export default function GameScreen() {
     gridState,
     cellSize,
     offsetX,
+    offsetY,
     contentWidth: canvasWidth,
-    contentHeight: gridHeight,
+    contentHeight: canvasHeight,
     containerWidth: containerLayout.width,
-    containerHeight: containerLayout.height || gridHeight,
+    containerHeight: containerLayout.height || canvasHeight,
     onArrowTap: handleArrowTap,
     onPreviewArrow: handlePreviewArrow,
   })
@@ -266,15 +273,17 @@ export default function GameScreen() {
       {/* Game grid */}
       <View style={[styles.gridContainer, styles.gridClip]} onLayout={handleContainerLayout}>
         <GestureDetector gesture={gesture}>
-          <Animated.View style={[{ width: canvasWidth, height: gridHeight }, animatedStyle]}>
+          <Animated.View style={[{ width: canvasWidth, height: canvasHeight }, animatedStyle]}>
             <GridCanvas
               gridState={gridState}
               selectedArrowId={selectedArrowId}
               errorArrowIds={errorArrowIds}
               previewArrowId={previewArrowId}
               canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
               cellSize={cellSize}
               offsetX={offsetX}
+              offsetY={offsetY}
               colors={colors}
               showGridLines={showGridLines}
             />
