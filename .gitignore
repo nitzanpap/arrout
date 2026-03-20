@@ -41,3 +41,10 @@ yarn-error.*
 /android
 examples/
 .playwright-mcp/
+
+# Local builds
+builds/
+build-*.apk
+build-*.aab
+build-*.ipa
+build-*.tar.gz
