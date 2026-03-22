@@ -12,7 +12,7 @@
   <tr>
     <td align="center"><img src="docs/media/home-screen.jpeg" alt="Home screen" width="270" /></td>
     <td align="center"><img src="docs/media/game-screen-level-start.jpeg" alt="Gameplay — Super Hard level" width="270" /></td>
-    <td align="center"><video src="https://github.com/user-attachments/assets/d66b4d56-3496-4948-8184-66ec64d784f0" width="270" controls></video></td>
+    <td align="center"><video src="https://github.com/user-attachments/assets/aeef5617-f350-4002-a383-3bb6dbebb45d" width="270" controls></video></td>
   </tr>
   <tr>
     <td align="center"><em>Home</em></td>
