@@ -21,6 +21,10 @@
   </tr>
 </table>
 
+## Download
+
+Grab the latest APK from the [Releases](https://github.com/nitzanpap/arrout/releases/latest) page and install it on any Android device — no Play Store needed.
+
 ## Why This Exists 🤷
 
 Picture this: you're sitting in a bomb shelter during Iranian missile strikes on Israel 🚀, the wifi is basically decorative 📶, and every offline puzzle game on your phone wants you to watch a 30-second ad after each level 📺. Somewhere between the third siren, the interceptions going BOOM! outside, and the fifteenth unskippable ad, I thought: "I'm a developer. I can fix at least one of these problems!" 🧑‍💻
@@ -175,4 +179,4 @@ Detailed design docs are in the [`docs/`](docs/) directory:
 
 ## License
 
-All rights reserved.
+[GNU General Public License v3.0](LICENSE)
