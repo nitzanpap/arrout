@@ -21,6 +21,12 @@
   </tr>
 </table>
 
+## Why This Exists
+
+Picture this: you're sitting in a bomb shelter during Iranian missile strikes on Israel, the wifi is basically decorative, and every offline puzzle game on your phone wants you to watch a 30-second ad after each level. Somewhere between the third siren and the fifteenth unskippable ad, I thought: "I'm a developer. I can fix at least one of these problems."
+
+Zero ads. Zero tracking. Zero internet required. Just puzzles and the occasional boom outside.
+
 ## How It Works
 
 Players are presented with a grid of arrow-shaped pieces. Each arrow has a head pointing in a direction and a body made of straight and curved segments. Tap an arrow to slide it off the board — the head advances and the body follows, cell by cell, like a snake. The catch: arrows block each other. Figure out the right order to clear them all.
@@ -158,9 +164,6 @@ bun run lint             # lint with Biome
 bun run typecheck        # type-check with tsc
 ```
 
-## Why This Exists
-
-During the Iran bombings in Israel, I spent a lot of time in the shelter with terrible internet. I wanted to play a simple offline puzzle game to pass the time, but every single one was stuffed with ads — one game I liked played a 30-second ad after every level. So I decided to just build my own. No ads, no tracking, no internet required. Just puzzles.
 
 ## Documentation
 
