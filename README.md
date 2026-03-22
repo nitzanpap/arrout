@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/media/gameplay-demo.mp4">Watch gameplay demo</a>
+  <video src="https://raw.githubusercontent.com/nitzanpap/arrout/main/docs/media/gameplay-demo.mp4" width="270" controls></video>
 </p>
 
 ## How It Works
