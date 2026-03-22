@@ -158,6 +158,10 @@ bun run lint             # lint with Biome
 bun run typecheck        # type-check with tsc
 ```
 
+## Why This Exists
+
+During the Iran bombings in Israel, I spent a lot of time in the shelter with terrible internet. I wanted to play a simple offline puzzle game to pass the time, but every single one was stuffed with ads — one game I liked played a 30-second ad after every level. So I decided to just build my own. No ads, no tracking, no internet required. Just puzzles.
+
 ## Documentation
 
 Detailed design docs are in the [`docs/`](docs/) directory:
