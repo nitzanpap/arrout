@@ -15,11 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/nitzanpap/arrout/blob/main/docs/media/gameplay-demo.mp4">
-    <img src="docs/media/game-screen-level-start.jpeg" alt="Watch gameplay demo" width="270" />
-    <br />
-    ▶ Watch gameplay demo
-  </a>
+  <video src="https://github.com/user-attachments/assets/d66b4d56-3496-4948-8184-66ec64d784f0" width="270" controls></video>
 </p>
 
 ## How It Works
