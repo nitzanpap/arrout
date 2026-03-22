@@ -105,18 +105,18 @@ bun start
 
 You can build a standalone APK to install on any Android device — no Play Store needed.
 
-**Option A — Local build** (requires Android SDK installed):
+**Local build** (requires Android SDK):
 
 ```bash
-./scripts/build-local.sh android
+bun run build:android:local
 ```
 
 The APK will be saved to `builds/arrout_v<version>_<date>_android_preview.apk`.
 
-**Option B — Cloud build** (via [EAS Build](https://docs.expo.dev/build/introduction/), free tier available):
+**Cloud build** (via [EAS Build](https://docs.expo.dev/build/introduction/), free tier available):
 
 ```bash
-npx eas-cli build --platform android --profile preview
+bun run build:android:preview
 ```
 
 EAS builds the APK in the cloud and gives you a download link when it's done.
@@ -124,7 +124,7 @@ EAS builds the APK in the cloud and gives you a download link when it's done.
 ### Install the APK on your phone
 
 1. Transfer the `.apk` file to your Android phone (USB, Google Drive, email, etc.)
-2. Open the file on the phone — you may need to enable "Install from unknown sources" in Settings
+2. Open the file on the phone — you may need to enable **Install from unknown sources** in Settings
 3. Tap **Install**, then **Open**
 
 Or install directly to a connected device via ADB:
@@ -136,11 +136,8 @@ adb install builds/arrout_v*.apk
 ### Build for iOS
 
 ```bash
-# Local build (requires macOS + Xcode)
-./scripts/build-local.sh ios
-
-# Cloud build
-npx eas-cli build --platform ios --profile preview
+bun run build:ios:local       # local build (requires macOS + Xcode)
+bun run build:ios:preview     # cloud build via EAS
 ```
 
 iOS builds require an Apple Developer account for device installation via TestFlight.
