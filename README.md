@@ -15,7 +15,11 @@
 </p>
 
 <p align="center">
-  <video src="https://raw.githubusercontent.com/nitzanpap/arrout/main/docs/media/gameplay-demo.mp4" width="270" controls></video>
+  <a href="https://github.com/nitzanpap/arrout/blob/main/docs/media/gameplay-demo.mp4">
+    <img src="docs/media/game-screen-level-start.jpeg" alt="Watch gameplay demo" width="270" />
+    <br />
+    ▶ Watch gameplay demo
+  </a>
 </p>
 
 ## How It Works
