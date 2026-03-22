@@ -21,11 +21,11 @@
   </tr>
 </table>
 
-## Why This Exists
+## Why This Exists 🤷
 
-Picture this: you're sitting in a bomb shelter during Iranian missile strikes on Israel, the wifi is basically decorative, and every offline puzzle game on your phone wants you to watch a 30-second ad after each level. Somewhere between the third siren and the fifteenth unskippable ad, I thought: "I'm a developer. I can fix at least one of these problems."
+Picture this: you're sitting in a bomb shelter during Iranian missile strikes on Israel 🚀, the wifi is basically decorative 📶, and every offline puzzle game on your phone wants you to watch a 30-second ad after each level 📺. Somewhere between the third siren, the interceptions going BOOM! outside, and the fifteenth unskippable ad, I thought: "I'm a developer. I can fix at least one of these problems!" 🧑‍💻
 
-Zero ads. Zero tracking. Zero internet required. Just puzzles and the occasional boom outside.
+Zero ads. Zero tracking. Zero internet required. Just puzzles and the occasional boom outside. 💥
 
 ## How It Works
 
