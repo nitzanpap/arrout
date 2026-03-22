@@ -8,15 +8,18 @@
   A minimalist logic puzzle game for mobile. Slide arrows off the board in the right order — but watch out, they move like snakes.
 </p>
 
-<p align="center">
-  <img src="docs/media/home-screen.jpeg" alt="Home screen" width="270" />
-  &nbsp;&nbsp;
-  <img src="docs/media/game-screen-level-start.jpeg" alt="Gameplay — Super Hard level" width="270" />
-</p>
-
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/d66b4d56-3496-4948-8184-66ec64d784f0" width="270" controls></video>
-</p>
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/media/home-screen.jpeg" alt="Home screen" width="270" /></td>
+    <td align="center"><img src="docs/media/game-screen-level-start.jpeg" alt="Gameplay — Super Hard level" width="270" /></td>
+    <td align="center"><video src="https://github.com/user-attachments/assets/d66b4d56-3496-4948-8184-66ec64d784f0" width="270" controls></video></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Home</em></td>
+    <td align="center"><em>Super Hard level</em></td>
+    <td align="center"><em>Gameplay</em></td>
+  </tr>
+</table>
 
 ## How It Works
 
