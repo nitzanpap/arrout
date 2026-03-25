@@ -111,27 +111,18 @@ bun start
 
 > The Android emulator or iOS simulator must already be running. If you don't have one set up, [Expo's guide](https://docs.expo.dev/get-started/set-up-your-environment/) walks you through it.
 
-### Build an APK (Android)
-
-You can build a standalone APK to install on any Android device — no Play Store needed.
-
-**Local build** (requires Android SDK):
+### Build
 
 ```bash
-bun run build:android:local
+bun run build:android          # production AAB (for Play Store)
+bun run build:android:preview  # preview APK (for testing)
+bun run build:ios              # production iOS build
+bun run build:ios:preview      # preview iOS build
 ```
 
-The APK will be saved to `builds/arrout_v<version>_<date>_android_preview.apk`.
+All builds run locally via EAS. Android production builds output an AAB to `builds/`, preview builds output an APK.
 
-**Cloud build** (via [EAS Build](https://docs.expo.dev/build/introduction/), free tier available):
-
-```bash
-bun run build:android:preview
-```
-
-EAS builds the APK in the cloud and gives you a download link when it's done.
-
-### Install the APK on your phone
+### Install a preview APK on your phone
 
 1. Transfer the `.apk` file to your Android phone (USB, Google Drive, email, etc.)
 2. Open the file on the phone — you may need to enable **Install from unknown sources** in Settings
@@ -142,15 +133,6 @@ Or install directly to a connected device via ADB:
 ```bash
 adb install builds/arrout_v*.apk
 ```
-
-### Build for iOS
-
-```bash
-bun run build:ios:local       # local build (requires macOS + Xcode)
-bun run build:ios:preview     # cloud build via EAS
-```
-
-iOS builds require an Apple Developer account for device installation via TestFlight.
 
 ### Run tests
 
@@ -167,7 +149,6 @@ bun test src/generator   # generator tests only
 bun run lint             # lint with Biome
 bun run typecheck        # type-check with tsc
 ```
-
 
 ## Documentation
 
