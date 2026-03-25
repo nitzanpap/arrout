@@ -24,6 +24,8 @@ export interface ThemeColors {
   readonly directionPreview: string
   readonly toggleKnob: string
   readonly toggleTrackOff: string
+  readonly touchRipple: string
+  readonly touchRippleOuter: string
   /** @deprecated dots are now always shown */
   readonly showGridDots?: boolean
 }
@@ -51,6 +53,8 @@ export const lightColors: ThemeColors = {
   directionPreview: 'rgba(59, 130, 246, 0.35)',
   toggleKnob: '#FFFFFF',
   toggleTrackOff: '#C8C4D6',
+  touchRipple: 'rgba(0, 0, 0, 0.12)',
+  touchRippleOuter: 'rgba(0, 0, 0, 0.06)',
   showGridDots: true,
 }
 
@@ -77,6 +81,8 @@ export const darkColors: ThemeColors = {
   directionPreview: 'rgba(96, 165, 250, 0.4)',
   toggleKnob: '#FFFFFF',
   toggleTrackOff: '#3A3D55',
+  touchRipple: 'rgba(255, 255, 255, 0.15)',
+  touchRippleOuter: 'rgba(255, 255, 255, 0.08)',
   showGridDots: false,
 }
 

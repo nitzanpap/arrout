@@ -14,6 +14,7 @@ import type { Difficulty } from '../src/engine/types'
 import { useGridGestures } from '../src/hooks/useGridGestures'
 import { useInactivityHint } from '../src/hooks/useInactivityHint'
 import { useLevelLoader } from '../src/hooks/useLevelLoader'
+import { useTouchRipple } from '../src/hooks/useTouchRipple'
 import { getLevel } from '../src/levels'
 import { useGameStore } from '../src/store/game.store'
 import { useProgressStore } from '../src/store/progress.store'
@@ -87,6 +88,22 @@ export default function GameScreen() {
   const [showGridLines, setShowGridLines] = useState(false)
   const [previewArrowId, setPreviewArrowId] = useState<string | null>(null)
 
+  // Touch ripple animation state
+  const ripple = useTouchRipple({
+    innerRadius: cellSize * 0.8,
+    outerMaxRadius: cellSize * 2.0,
+  })
+
+  // Convert gesture-space tap coordinates to canvas-space for the ripple
+  const handleTapPosition = useCallback(
+    (x: number, y: number) => {
+      // Gesture coordinates are in the Animated.View's space (puzzleOffsetX/Y).
+      // The Skia canvas has an extra CANVAS_OVERFLOW offset.
+      ripple.triggerRipple(x + CANVAS_OVERFLOW, y + CANVAS_OVERFLOW)
+    },
+    [ripple.triggerRipple]
+  )
+
   const handleContainerLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout
     setContainerLayout({ width, height })
@@ -127,6 +144,7 @@ export default function GameScreen() {
     containerHeight: contentHeight,
     onArrowTap: handleArrowTap,
     onPreviewArrow: handlePreviewArrow,
+    onTapPosition: handleTapPosition,
   })
 
   const handleBack = useCallback(() => {
@@ -312,6 +330,13 @@ export default function GameScreen() {
               canvasMarginTop={-CANVAS_OVERFLOW}
               colors={colors}
               showGridLines={showGridLines}
+              ripple={{
+                rippleX: ripple.rippleX,
+                rippleY: ripple.rippleY,
+                innerOpacity: ripple.innerOpacity,
+                outerOpacity: ripple.outerOpacity,
+                outerRadius: ripple.outerRadius,
+              }}
             />
           </Animated.View>
         </GestureDetector>

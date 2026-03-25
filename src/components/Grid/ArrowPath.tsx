@@ -16,9 +16,60 @@ interface ArrowPathProps {
 }
 
 const HINT_GLOW_ALPHA = 0.6
-const STROKE_WIDTH_RATIO = 0.09
-const MIN_STROKE_WIDTH = 3
-const HEAD_SIZE_RATIO = 0.18
+const STROKE_WIDTH_RATIO = 0.16
+const MIN_STROKE_WIDTH = 4
+const HEAD_SIZE_RATIO = 0.24
+
+/**
+ * Build a smooth body path using quadratic bezier curves at direction changes.
+ * At each 90-degree turn, instead of a sharp corner we draw:
+ *   lineTo(midpoint before corner) → quadTo(corner, midpoint after corner)
+ * This produces smooth quarter-circle-like arcs through every turn.
+ */
+function buildSmoothBodyPath(
+  points: readonly { readonly x: number; readonly y: number }[]
+): ReturnType<typeof Skia.Path.Make> {
+  'worklet'
+  const path = Skia.Path.Make()
+  if (points.length < 2) return path
+
+  path.moveTo(points[0].x, points[0].y)
+
+  if (points.length === 2) {
+    path.lineTo(points[1].x, points[1].y)
+    return path
+  }
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1]
+    const curr = points[i]
+    const next = points[i + 1]
+
+    const dx1 = curr.x - prev.x
+    const dy1 = curr.y - prev.y
+    const dx2 = next.x - curr.x
+    const dy2 = next.y - curr.y
+
+    const isTurn = dx1 !== dx2 || dy1 !== dy2
+
+    if (!isTurn) {
+      path.lineTo(curr.x, curr.y)
+    } else {
+      const midBeforeX = (prev.x + curr.x) / 2
+      const midBeforeY = (prev.y + curr.y) / 2
+      const midAfterX = (curr.x + next.x) / 2
+      const midAfterY = (curr.y + next.y) / 2
+
+      path.lineTo(midBeforeX, midBeforeY)
+      path.quadTo(curr.x, curr.y, midAfterX, midAfterY)
+    }
+  }
+
+  const last = points[points.length - 1]
+  path.lineTo(last.x, last.y)
+
+  return path
+}
 
 export function ArrowPath({
   arrow,
@@ -40,20 +91,14 @@ export function ArrowPath({
 
   // Static body path (used when NOT track-animating)
   const staticBodyPath = useMemo(() => {
-    const path = Skia.Path.Make()
-    if (arrow.cells.length < 2) return path
+    if (arrow.cells.length < 2) return Skia.Path.Make()
 
     const centers = arrow.cells.map((cell) => ({
       x: offsetX + cell.col * cellSize + cellSize / 2,
       y: offsetY + cell.row * cellSize + cellSize / 2,
     }))
 
-    path.moveTo(centers[0].x, centers[0].y)
-    for (let i = 1; i < centers.length; i++) {
-      path.lineTo(centers[i].x, centers[i].y)
-    }
-
-    return path
+    return buildSmoothBodyPath(centers)
   }, [arrow.cells, cellSize, offsetX, offsetY])
 
   // Static head path (used when NOT track-animating)
@@ -76,7 +121,7 @@ export function ArrowPath({
     return [{ translateX: translateX.value }, { translateY: translateY.value }]
   })
 
-  // Track-animated body path — sliding window over the track
+  // Track-animated body path — sliding window over the track with smooth bezier corners
   const trackBodyPath = useDerivedValue(() => {
     if (!isTrackAnimating || !track || track.positions.length <= track.arrowLength) {
       return staticBodyPath
@@ -96,41 +141,40 @@ export function ArrowPath({
     const headCeil = Math.min(headFloor + 1, track.positions.length - 1)
     const headFrac = headFloat - Math.floor(headFloat)
 
-    const path = Skia.Path.Make()
+    // Collect all points, then build smooth path
+    const points: { x: number; y: number }[] = []
 
     // Start point: interpolated tail position
     const tailA = track.positions[tailFloor]
     const tailB = track.positions[tailCeil]
-    const startX =
-      offsetX + (tailA.col + (tailB.col - tailA.col) * tailFrac) * cellSize + cellSize / 2
-    const startY =
-      offsetY + (tailA.row + (tailB.row - tailA.row) * tailFrac) * cellSize + cellSize / 2
+    points.push({
+      x: offsetX + (tailA.col + (tailB.col - tailA.col) * tailFrac) * cellSize + cellSize / 2,
+      y: offsetY + (tailA.row + (tailB.row - tailA.row) * tailFrac) * cellSize + cellSize / 2,
+    })
 
-    path.moveTo(startX, startY)
-
-    // Interior points: exact grid positions (no interpolation — no diagonal movement)
+    // Interior points: exact grid positions
     const firstInterior = tailCeil
     const lastInterior = headFloor
 
     for (let i = firstInterior; i <= lastInterior; i++) {
       const pos = track.positions[i]
-      const x = offsetX + pos.col * cellSize + cellSize / 2
-      const y = offsetY + pos.row * cellSize + cellSize / 2
-      path.lineTo(x, y)
+      points.push({
+        x: offsetX + pos.col * cellSize + cellSize / 2,
+        y: offsetY + pos.row * cellSize + cellSize / 2,
+      })
     }
 
     // End point: interpolated head position
     if (headFrac > 0 && headCeil > headFloor) {
       const headA = track.positions[headFloor]
       const headB = track.positions[headCeil]
-      const endX =
-        offsetX + (headA.col + (headB.col - headA.col) * headFrac) * cellSize + cellSize / 2
-      const endY =
-        offsetY + (headA.row + (headB.row - headA.row) * headFrac) * cellSize + cellSize / 2
-      path.lineTo(endX, endY)
+      points.push({
+        x: offsetX + (headA.col + (headB.col - headA.col) * headFrac) * cellSize + cellSize / 2,
+        y: offsetY + (headA.row + (headB.row - headA.row) * headFrac) * cellSize + cellSize / 2,
+      })
     }
 
-    return path
+    return buildSmoothBodyPath(points)
   })
 
   // Track-animated arrowhead path
@@ -204,6 +248,11 @@ export function ArrowPath({
   )
 }
 
+/**
+ * Build a rounded arrowhead using cubic bezier curves.
+ * The tip is smoothly rounded instead of a sharp vertex.
+ * Each side curves inward via cubicTo, creating a softer look.
+ */
 function buildArrowHead(
   direction: string,
   cx: number,
@@ -213,27 +262,72 @@ function buildArrowHead(
   'worklet'
   const path = Skia.Path.Make()
 
+  // Tip rounding: the bezier control points pull ~15% short of the apex
+  // and curve smoothly through, producing a rounded tip.
+  const r = 0.15 // rounding factor
+  const base = 0.5 // base offset ratio
+
   switch (direction) {
-    case 'UP':
-      path.moveTo(cx, cy - size)
-      path.lineTo(cx - size, cy + size * 0.5)
-      path.lineTo(cx + size, cy + size * 0.5)
+    case 'UP': {
+      const tipY = cy - size
+      const baseY = cy + size * base
+      path.moveTo(cx - size, baseY)
+      path.cubicTo(cx - size * 0.4, baseY - size * 0.3, cx - size * r, tipY + size * r, cx, tipY)
+      path.cubicTo(
+        cx + size * r,
+        tipY + size * r,
+        cx + size * 0.4,
+        baseY - size * 0.3,
+        cx + size,
+        baseY
+      )
       break
-    case 'DOWN':
-      path.moveTo(cx, cy + size)
-      path.lineTo(cx - size, cy - size * 0.5)
-      path.lineTo(cx + size, cy - size * 0.5)
+    }
+    case 'DOWN': {
+      const tipY = cy + size
+      const baseY = cy - size * base
+      path.moveTo(cx - size, baseY)
+      path.cubicTo(cx - size * 0.4, baseY + size * 0.3, cx - size * r, tipY - size * r, cx, tipY)
+      path.cubicTo(
+        cx + size * r,
+        tipY - size * r,
+        cx + size * 0.4,
+        baseY + size * 0.3,
+        cx + size,
+        baseY
+      )
       break
-    case 'LEFT':
-      path.moveTo(cx - size, cy)
-      path.lineTo(cx + size * 0.5, cy - size)
-      path.lineTo(cx + size * 0.5, cy + size)
+    }
+    case 'LEFT': {
+      const tipX = cx - size
+      const baseX = cx + size * base
+      path.moveTo(baseX, cy - size)
+      path.cubicTo(baseX - size * 0.3, cy - size * 0.4, tipX + size * r, cy - size * r, tipX, cy)
+      path.cubicTo(
+        tipX + size * r,
+        cy + size * r,
+        baseX - size * 0.3,
+        cy + size * 0.4,
+        baseX,
+        cy + size
+      )
       break
-    case 'RIGHT':
-      path.moveTo(cx + size, cy)
-      path.lineTo(cx - size * 0.5, cy - size)
-      path.lineTo(cx - size * 0.5, cy + size)
+    }
+    case 'RIGHT': {
+      const tipX = cx + size
+      const baseX = cx - size * base
+      path.moveTo(baseX, cy - size)
+      path.cubicTo(baseX + size * 0.3, cy - size * 0.4, tipX - size * r, cy - size * r, tipX, cy)
+      path.cubicTo(
+        tipX - size * r,
+        cy + size * r,
+        baseX + size * 0.3,
+        cy + size * 0.4,
+        baseX,
+        cy + size
+      )
       break
+    }
   }
 
   path.close()

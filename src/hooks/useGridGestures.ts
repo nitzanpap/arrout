@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Gesture } from 'react-native-gesture-handler'
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 import type { GridState } from '../engine/types'
+import { findClosestArrow } from './findClosestArrow'
 
 const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
 
@@ -35,6 +36,7 @@ interface UseGridGesturesOptions {
   readonly containerHeight: number
   readonly onArrowTap: (arrowId: string) => void
   readonly onPreviewArrow: (arrowId: string | null) => void
+  readonly onTapPosition?: (x: number, y: number) => void
 }
 
 export function useGridGestures({
@@ -48,6 +50,7 @@ export function useGridGestures({
   containerHeight,
   onArrowTap,
   onPreviewArrow,
+  onTapPosition,
 }: UseGridGesturesOptions) {
   const scale = useSharedValue(1)
   const translateX = useSharedValue(0)
@@ -140,22 +143,15 @@ export function useGridGestures({
     ]
   )
 
-  // Helper: find arrow ID at canvas coordinates
-  const findArrowAt = useRef((x: number, y: number): string | null => {
-    const gs = gridStateRef.current
-    if (!gs || cellSize === 0) return null
-    const col = Math.floor((x - offsetX) / cellSize)
-    const row = Math.floor((y - offsetY) / cellSize)
-    if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
-    return gs.cells[row][col].arrowId
-  })
+  const onTapPositionRef = useRef(onTapPosition)
+  onTapPositionRef.current = onTapPosition
+
+  // Helper: find the closest arrow within hit radius of canvas coordinates
+  const findArrowAt = useRef((_x: number, _y: number): string | null => null)
   findArrowAt.current = (x: number, y: number): string | null => {
     const gs = gridStateRef.current
-    if (!gs || cellSize === 0) return null
-    const col = Math.floor((x - offsetX) / cellSize)
-    const row = Math.floor((y - offsetY) / cellSize)
-    if (row < 0 || row >= gs.height || col < 0 || col >= gs.width) return null
-    return gs.cells[row][col].arrowId
+    if (!gs) return null
+    return findClosestArrow(x, y, gs, cellSize, offsetX, offsetY)
   }
 
   const tap = useMemo(
@@ -167,29 +163,19 @@ export function useGridGestures({
           const gs = gridStateRef.current
           if (!gs || cellSize === 0) return
 
+          // Always trigger visual ripple at tap position
+          onTapPositionRef.current?.(e.x, e.y)
+
           // RNGH coordinates already account for Reanimated transforms on the Animated.View,
           // so e.x/e.y map directly to canvas-space positions — no inversion needed.
-          const col = Math.floor((e.x - offsetX) / cellSize)
-          const row = Math.floor((e.y - offsetY) / cellSize)
-
-          if (row >= 0 && row < gs.height && col >= 0 && col < gs.width) {
-            const cell = gs.cells[row][col]
-            debugLog(
-              'tap',
-              `e=(${e.x.toFixed(1)},${e.y.toFixed(1)}) cell=(${col},${row}) arrow=${cell.arrowId ?? 'none'}`
-            )
-            if (cell.arrowId) {
-              onArrowTapRef.current(cell.arrowId)
-            }
-          } else {
-            debugLog(
-              'tap',
-              `e=(${e.x.toFixed(1)},${e.y.toFixed(1)}) cell=(${col},${row}) out of bounds`
-            )
+          const arrowId = findArrowAt.current(e.x, e.y)
+          debugLog('tap', `e=(${e.x.toFixed(1)},${e.y.toFixed(1)}) arrow=${arrowId ?? 'none'}`)
+          if (arrowId) {
+            onArrowTapRef.current(arrowId)
           }
         }),
-    // Stable deps — gridState and onArrowTap are read from refs, not closures
-    [cellSize, offsetX, offsetY]
+    // Stable deps — gridState, findArrowAt, onArrowTap, and onTapPosition are read from refs
+    [cellSize]
   )
 
   // Long-press: show direction preview, drag-to-cancel, release-to-fire
