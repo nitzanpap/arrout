@@ -43,7 +43,26 @@ const config: ExpoConfig = {
       projectId: '74f4c978-7c3a-4233-b1ea-0fc75b5d1514',
     },
   },
-  plugins: ['expo-router', 'expo-audio', 'expo-asset'],
+  plugins: [
+    'expo-router',
+    [
+      'expo-audio',
+      {
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        enableBackgroundPlayback: false,
+      },
+    ],
+    'expo-asset',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          removePermissions: ['android.permission.MODIFY_AUDIO_SETTINGS'],
+        },
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },
