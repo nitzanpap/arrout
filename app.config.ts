@@ -54,19 +54,7 @@ const config: ExpoConfig = {
       },
     ],
     'expo-asset',
-    [
-      'expo-build-properties',
-      {
-        android: {
-          removePermissions: [
-            'android.permission.RECORD_AUDIO',
-            'android.permission.MODIFY_AUDIO_SETTINGS',
-            'android.permission.FOREGROUND_SERVICE',
-            'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
-          ],
-        },
-      },
-    ],
+    './plugins/remove-audio-permissions',
   ],
   experiments: {
     typedRoutes: true,
