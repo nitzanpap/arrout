@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="assets/icon.png" width="128" height="128" alt="Arrout logo" />
+  <img src="assets/feature-graphic-1024x500.png" alt="Arrout — Think before you tap" width="720" />
 </p>
 
-<h1 align="center">Arrout</h1>
-
 <p align="center">
-  A minimalist logic puzzle game for mobile. Slide arrows off the board in the right order — but watch out, they move like snakes.
+  A minimalist logic puzzle game for mobile. Slide arrows off the board in the right order — but watch out, they block each other.
 </p>
 
 <table align="center">
