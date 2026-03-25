@@ -58,7 +58,12 @@ const config: ExpoConfig = {
       'expo-build-properties',
       {
         android: {
-          removePermissions: ['android.permission.MODIFY_AUDIO_SETTINGS'],
+          removePermissions: [
+            'android.permission.RECORD_AUDIO',
+            'android.permission.MODIFY_AUDIO_SETTINGS',
+            'android.permission.FOREGROUND_SERVICE',
+            'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+          ],
         },
       },
     ],
