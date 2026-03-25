@@ -1,13 +1,23 @@
 import { Canvas, Circle, DashPathEffect, Line, vec } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
+import type { SharedValue } from 'react-native-reanimated'
 import { getHead, getHeadDirection } from '../../engine/arrow'
 import type { GridState } from '../../engine/types'
 import { directionDelta } from '../../engine/types'
 import type { ThemeColors } from '../../theme/colors'
 import { ArrowPath } from './ArrowPath'
+import { TouchRipple } from './TouchRipple'
 
 // Lines extend far beyond the canvas so they appear infinite even when zoomed/panned
 const LINE_EXTENT = 10000
+
+interface RippleSharedValues {
+  readonly rippleX: SharedValue<number>
+  readonly rippleY: SharedValue<number>
+  readonly innerOpacity: SharedValue<number>
+  readonly outerOpacity: SharedValue<number>
+  readonly outerRadius: SharedValue<number>
+}
 
 interface GridCanvasProps {
   readonly gridState: GridState
@@ -23,6 +33,7 @@ interface GridCanvasProps {
   readonly canvasMarginTop?: number
   readonly colors: ThemeColors
   readonly showGridLines: boolean
+  readonly ripple?: RippleSharedValues
 }
 
 export function GridCanvas({
@@ -39,6 +50,7 @@ export function GridCanvas({
   canvasMarginTop = 0,
   colors,
   showGridLines,
+  ripple,
 }: GridCanvasProps) {
   // Dots at cell centers — always visible as subtle grid reference
   const dotElements = useMemo(() => {
@@ -137,6 +149,19 @@ export function GridCanvas({
         >
           <DashPathEffect intervals={[6, 4]} />
         </Line>
+      )}
+
+      {ripple && (
+        <TouchRipple
+          rippleX={ripple.rippleX}
+          rippleY={ripple.rippleY}
+          innerOpacity={ripple.innerOpacity}
+          outerOpacity={ripple.outerOpacity}
+          outerRadius={ripple.outerRadius}
+          innerRadius={cellSize * 0.8}
+          innerColor={colors.touchRipple}
+          outerColor={colors.touchRippleOuter}
+        />
       )}
     </Canvas>
   )
