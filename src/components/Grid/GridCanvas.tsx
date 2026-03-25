@@ -141,14 +141,32 @@ export function GridCanvas({
       ))}
 
       {previewLine && (
-        <Line
-          p1={vec(previewLine.p1.x, previewLine.p1.y)}
-          p2={vec(previewLine.p2.x, previewLine.p2.y)}
-          color={colors.directionPreview}
-          strokeWidth={2}
-        >
-          <DashPathEffect intervals={[6, 4]} />
-        </Line>
+        <>
+          {/* Neon glow behind direction preview */}
+          <Line
+            p1={vec(previewLine.p1.x, previewLine.p1.y)}
+            p2={vec(previewLine.p2.x, previewLine.p2.y)}
+            color={colors.arrowHint}
+            strokeWidth={8}
+            opacity={0.1}
+          />
+          <Line
+            p1={vec(previewLine.p1.x, previewLine.p1.y)}
+            p2={vec(previewLine.p2.x, previewLine.p2.y)}
+            color={colors.arrowHint}
+            strokeWidth={4}
+            opacity={0.25}
+          />
+          <Line
+            p1={vec(previewLine.p1.x, previewLine.p1.y)}
+            p2={vec(previewLine.p2.x, previewLine.p2.y)}
+            color="#FFFFFF"
+            strokeWidth={1.5}
+            opacity={0.6}
+          >
+            <DashPathEffect intervals={[6, 4]} />
+          </Line>
+        </>
       )}
 
       {ripple && (

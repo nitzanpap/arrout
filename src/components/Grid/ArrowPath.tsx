@@ -15,10 +15,16 @@ interface ArrowPathProps {
   readonly colors: ThemeColors
 }
 
-const HINT_GLOW_ALPHA = 0.6
 const STROKE_WIDTH_RATIO = 0.16
 const MIN_STROKE_WIDTH = 4
 const HEAD_SIZE_RATIO = 0.24
+const NEON_BLOOM_ALPHA = 0.12
+const NEON_BLOOM_EXTRA_WIDTH = 24
+const NEON_OUTER_GLOW_ALPHA = 0.35
+const NEON_OUTER_EXTRA_WIDTH = 12
+const NEON_INNER_GLOW_ALPHA = 0.7
+const NEON_INNER_EXTRA_WIDTH = 4
+const NEON_CORE_COLOR = '#FFFFFF'
 
 /**
  * Build a smooth body path using quadratic bezier curves at direction changes.
@@ -80,13 +86,15 @@ export function ArrowPath({
   isError,
   colors,
 }: ArrowPathProps) {
-  const { translateX, translateY, progress, track, isTrackAnimating } = useArrowAnimation(
-    arrow.id,
-    cellSize
-  )
+  const { translateX, translateY, progress, track, isTrackAnimating, neonColor } =
+    useArrowAnimation(arrow.id, cellSize)
 
   const strokeWidth = Math.max(MIN_STROKE_WIDTH, cellSize * STROKE_WIDTH_RATIO)
-  const color = isError ? colors.arrowError : isSelected ? colors.arrowHint : colors.arrowColor
+  const color = isError
+    ? colors.arrowError
+    : isSelected
+      ? colors.arrowHint
+      : (neonColor ?? colors.arrowColor)
   const opacity = 1
 
   // Static body path (used when NOT track-animating)
@@ -209,39 +217,107 @@ export function ArrowPath({
   if (isTrackAnimating) {
     return (
       <Group opacity={opacity}>
+        {/* Layer 1: Wide soft bloom — gives the "light spill" feel */}
+        {neonColor && (
+          <Path
+            path={trackBodyPath}
+            color={neonColor}
+            style="stroke"
+            strokeWidth={strokeWidth + NEON_BLOOM_EXTRA_WIDTH}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={NEON_BLOOM_ALPHA}
+          />
+        )}
+        {/* Layer 2: Mid glow — saturated color ring */}
+        {neonColor && (
+          <Path
+            path={trackBodyPath}
+            color={neonColor}
+            style="stroke"
+            strokeWidth={strokeWidth + NEON_OUTER_EXTRA_WIDTH}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={NEON_OUTER_GLOW_ALPHA}
+          />
+        )}
+        {/* Layer 3: Inner glow — bright and tight */}
+        {neonColor && (
+          <Path
+            path={trackBodyPath}
+            color={neonColor}
+            style="stroke"
+            strokeWidth={strokeWidth + NEON_INNER_EXTRA_WIDTH}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={NEON_INNER_GLOW_ALPHA}
+          />
+        )}
+        {/* Core: White-hot center like a real neon tube */}
         <Path
           path={trackBodyPath}
-          color={color}
+          color={neonColor ? NEON_CORE_COLOR : color}
           style="stroke"
           strokeWidth={strokeWidth}
           strokeCap="round"
           strokeJoin="round"
         />
-        <Path path={trackHeadPath} color={color} style="fill" />
+        <Path path={trackHeadPath} color={neonColor ? NEON_CORE_COLOR : color} style="fill" />
       </Group>
     )
   }
 
+  const staticGlowColor = isError ? colors.arrowError : isSelected ? colors.arrowHint : null
+
   return (
     <Group opacity={opacity} transform={animatedTransform}>
+      {/* Static neon glow for hint and error arrows */}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_BLOOM_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_BLOOM_ALPHA * 0.8 : NEON_BLOOM_ALPHA}
+        />
+      )}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_OUTER_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_OUTER_GLOW_ALPHA * 0.6 : NEON_OUTER_GLOW_ALPHA}
+        />
+      )}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_INNER_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_INNER_GLOW_ALPHA * 0.5 : NEON_INNER_GLOW_ALPHA}
+        />
+      )}
       <Path
         path={staticBodyPath}
-        color={color}
+        color={staticGlowColor ? NEON_CORE_COLOR : color}
         style="stroke"
         strokeWidth={strokeWidth}
         strokeCap="round"
         strokeJoin="round"
       />
-      {staticHeadPath && <Path path={staticHeadPath} color={color} style="fill" />}
-      {isSelected && (
+      {staticHeadPath && (
         <Path
-          path={staticBodyPath}
-          color={colors.arrowHint}
-          style="stroke"
-          strokeWidth={strokeWidth + 8}
-          strokeCap="round"
-          strokeJoin="round"
-          opacity={HINT_GLOW_ALPHA}
+          path={staticHeadPath}
+          color={staticGlowColor ? NEON_CORE_COLOR : color}
+          style="fill"
         />
       )}
     </Group>

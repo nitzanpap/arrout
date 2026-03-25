@@ -17,6 +17,7 @@ export interface ArrowAnimationState {
   readonly progress: { value: number }
   readonly track: ArrowTrack | null
   readonly isTrackAnimating: boolean
+  readonly neonColor: string | null
 }
 
 export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnimationState {
@@ -37,6 +38,7 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
   // Derive track directly from animEntry — no extra render cycle
   const track = animEntry?.track ?? null
   const isTrackAnimating = animEntry !== null && track !== null
+  const neonColor = animEntry?.neonColor ?? null
 
   const onValidComplete = useCallback(() => {
     if (useSettingsStore.getState().hapticsEnabled) {
@@ -116,5 +118,5 @@ export function useArrowAnimation(arrowId: string, cellSize: number): ArrowAnima
     }
   }, [animEntry, cellSize, translateX, translateY, progress, onValidComplete, onInvalidComplete])
 
-  return { translateX, translateY, progress, track, isTrackAnimating }
+  return { translateX, translateY, progress, track, isTrackAnimating, neonColor }
 }

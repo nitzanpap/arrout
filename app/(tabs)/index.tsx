@@ -21,14 +21,33 @@ export default function HomeScreen() {
 
   const dynamicStyles = useMemo(
     () => ({
-      logo: { color: colors.textPrimary },
+      logo: {
+        color: '#FFFFFF',
+        textShadowColor: colors.accent,
+        textShadowRadius: 20,
+        textShadowOffset: { width: 0, height: 0 },
+      },
       subtitle: { color: colors.textSecondary },
       levelNumber: { color: colors.textPrimary },
       difficulty: { color: colors.accent },
-      streakBg: { backgroundColor: colors.headerBand },
+      streakBg: {
+        backgroundColor: colors.headerBand,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 4,
+      },
       streakLabel: { color: colors.textSecondary },
       streakValue: { color: colors.textPrimary },
-      playButton: { backgroundColor: colors.accent },
+      playButton: {
+        backgroundColor: colors.accent,
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 8,
+      },
       playButtonText: { color: '#FFFFFF' },
     }),
     [colors]

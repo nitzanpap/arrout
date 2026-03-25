@@ -97,3 +97,5 @@ export function useThemeColors(): ThemeColors {
   const scheme = useResolvedScheme()
   return scheme === 'light' ? lightColors : darkColors
 }
+
+export { NEON_PALETTE, pickNeonColor } from './neon'

@@ -27,7 +27,15 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 }
 
 const PARTICLE_COUNT = 24
-const PARTICLE_COLORS = ['#FF6B8A', '#7B77FF', '#60A5FA', '#FBBF24', '#34D399', '#F472B6']
+const PARTICLE_COLORS = [
+  '#00E5FF',
+  '#FF00E5',
+  '#FF4A6A',
+  '#4A9FFF',
+  '#00FF88',
+  '#FFD600',
+  '#BF5AF2',
+]
 
 interface Particle {
   readonly id: number
@@ -84,21 +92,44 @@ function CelebrationParticle({ particle }: { readonly particle: Particle }) {
     opacity: opacity.value,
   }))
 
+  const glowSize = particle.size * 2.5
+
   return (
     <Animated.View
       style={[
         {
           position: 'absolute',
-          left: particle.x,
-          top: 0,
-          width: particle.size,
-          height: particle.size,
-          borderRadius: particle.size / 2,
-          backgroundColor: particle.color,
+          left: particle.x - (glowSize - particle.size) / 2,
+          top: -(glowSize - particle.size) / 2,
+          width: glowSize,
+          height: glowSize,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         style,
       ]}
-    />
+    >
+      {/* Outer glow halo */}
+      <View
+        style={{
+          position: 'absolute',
+          width: glowSize,
+          height: glowSize,
+          borderRadius: glowSize / 2,
+          backgroundColor: particle.color,
+          opacity: 0.3,
+        }}
+      />
+      {/* White-hot core */}
+      <View
+        style={{
+          width: particle.size,
+          height: particle.size,
+          borderRadius: particle.size / 2,
+          backgroundColor: '#FFFFFF',
+        }}
+      />
+    </Animated.View>
   )
 }
 
@@ -195,7 +226,15 @@ export function CelebrationOverlay({
       <View style={[styles.card, { backgroundColor: colors.overlayCard }]}>
         <Animated.Text
           entering={FadeInDown.duration(400).delay(100)}
-          style={[styles.title, { color: colors.textPrimary }]}
+          style={[
+            styles.title,
+            {
+              color: '#FFFFFF',
+              textShadowColor: colors.accent,
+              textShadowRadius: 16,
+              textShadowOffset: { width: 0, height: 0 },
+            },
+          ]}
         >
           Level Complete!
         </Animated.Text>
@@ -225,7 +264,17 @@ export function CelebrationOverlay({
           style={[buttonAnimStyle, pulseStyle]}
         >
           <Pressable
-            style={[styles.nextButton, { backgroundColor: colors.accent }]}
+            style={[
+              styles.nextButton,
+              {
+                backgroundColor: colors.accent,
+                shadowColor: colors.accent,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.6,
+                shadowRadius: 12,
+                elevation: 8,
+              },
+            ]}
             onPress={handleNextPress}
           >
             <Text style={styles.nextButtonText}>Next Level</Text>
