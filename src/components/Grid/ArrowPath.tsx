@@ -19,6 +19,10 @@ const HINT_GLOW_ALPHA = 0.6
 const STROKE_WIDTH_RATIO = 0.16
 const MIN_STROKE_WIDTH = 4
 const HEAD_SIZE_RATIO = 0.24
+const NEON_OUTER_GLOW_ALPHA = 0.25
+const NEON_INNER_GLOW_ALPHA = 0.5
+const NEON_OUTER_EXTRA_WIDTH = 14
+const NEON_INNER_EXTRA_WIDTH = 6
 
 /**
  * Build a smooth body path using quadratic bezier curves at direction changes.
@@ -80,13 +84,15 @@ export function ArrowPath({
   isError,
   colors,
 }: ArrowPathProps) {
-  const { translateX, translateY, progress, track, isTrackAnimating } = useArrowAnimation(
-    arrow.id,
-    cellSize
-  )
+  const { translateX, translateY, progress, track, isTrackAnimating, neonColor } =
+    useArrowAnimation(arrow.id, cellSize)
 
   const strokeWidth = Math.max(MIN_STROKE_WIDTH, cellSize * STROKE_WIDTH_RATIO)
-  const color = isError ? colors.arrowError : isSelected ? colors.arrowHint : colors.arrowColor
+  const color = isError
+    ? colors.arrowError
+    : isSelected
+      ? colors.arrowHint
+      : (neonColor ?? colors.arrowColor)
   const opacity = 1
 
   // Static body path (used when NOT track-animating)
@@ -209,6 +215,28 @@ export function ArrowPath({
   if (isTrackAnimating) {
     return (
       <Group opacity={opacity}>
+        {neonColor && (
+          <Path
+            path={trackBodyPath}
+            color={neonColor}
+            style="stroke"
+            strokeWidth={strokeWidth + NEON_OUTER_EXTRA_WIDTH}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={NEON_OUTER_GLOW_ALPHA}
+          />
+        )}
+        {neonColor && (
+          <Path
+            path={trackBodyPath}
+            color={neonColor}
+            style="stroke"
+            strokeWidth={strokeWidth + NEON_INNER_EXTRA_WIDTH}
+            strokeCap="round"
+            strokeJoin="round"
+            opacity={NEON_INNER_GLOW_ALPHA}
+          />
+        )}
         <Path
           path={trackBodyPath}
           color={color}

@@ -4,6 +4,7 @@ import { canMove, computeDistanceToBlocker, executeMove } from '../engine/move'
 import type { ArrowTrack } from '../engine/moveSteps'
 import { extractPartialTrack, extractTrack } from '../engine/moveSteps'
 import type { GridState, Level } from '../engine/types'
+import { pickNeonColor } from '../theme/colors'
 
 const DEBUG = typeof __DEV__ !== 'undefined' && __DEV__
 
@@ -22,6 +23,7 @@ export interface AnimationEntry {
   readonly pendingFinalState: GridState | null // only for valid
   readonly track: ArrowTrack | null
   readonly maxProgress: number
+  readonly neonColor: string | null
 }
 
 interface GameState {
@@ -125,6 +127,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         pendingFinalState: result.nextState,
         track: arrowTrack,
         maxProgress,
+        neonColor: pickNeonColor(arrowId),
       })
 
       set({
@@ -145,6 +148,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         pendingFinalState: null,
         track: partialTrack,
         maxProgress,
+        neonColor: null,
       })
 
       set({
