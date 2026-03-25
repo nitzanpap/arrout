@@ -281,6 +281,13 @@ export default function GameScreen() {
                   style={({ pressed }) => [
                     styles.circleButton,
                     dynamicStyles.buttonBg,
+                    {
+                      shadowColor: colors.accent,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 8,
+                      elevation: 4,
+                    },
                     hasActiveAnimations && styles.disabled,
                     pressed && !hasActiveAnimations && styles.buttonPressed,
                   ]}
@@ -290,7 +297,7 @@ export default function GameScreen() {
                   }}
                   disabled={hasActiveAnimations}
                 >
-                  <LightbulbIcon size={20} color={colors.buttonIcon} />
+                  <LightbulbIcon size={20} color={colors.accent} />
                 </Pressable>
               </Animated.View>
             ) : (
@@ -299,10 +306,17 @@ export default function GameScreen() {
           </View>
         </View>
 
-        {/* Progress bar */}
+        {/* Progress bar with neon glow */}
         <View style={[styles.progressBarTrack, dynamicStyles.progressBarTrack]}>
           <Animated.View
-            style={[styles.progressBarFill, dynamicStyles.progressBarFill, progressAnimatedStyle]}
+            style={[
+              styles.progressBarGlow,
+              { backgroundColor: colors.progressBar, opacity: 0.3 },
+              progressAnimatedStyle,
+            ]}
+          />
+          <Animated.View
+            style={[styles.progressBarFill, { backgroundColor: '#FFFFFF' }, progressAnimatedStyle]}
           />
         </View>
       </View>
@@ -454,14 +468,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   progressBarTrack: {
-    height: 2,
+    height: 6,
     marginHorizontal: 20,
     marginTop: 4,
-    borderRadius: 1,
+    borderRadius: 3,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  progressBarGlow: {
+    position: 'absolute',
+    height: 6,
+    borderRadius: 3,
   },
   progressBarFill: {
+    position: 'absolute',
     height: 2,
     borderRadius: 1,
+    top: 2,
   },
   gridContainer: {
     flex: 1,

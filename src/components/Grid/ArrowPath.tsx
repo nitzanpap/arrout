@@ -15,7 +15,6 @@ interface ArrowPathProps {
   readonly colors: ThemeColors
 }
 
-const HINT_GLOW_ALPHA = 0.6
 const STROKE_WIDTH_RATIO = 0.16
 const MIN_STROKE_WIDTH = 4
 const HEAD_SIZE_RATIO = 0.24
@@ -268,26 +267,57 @@ export function ArrowPath({
     )
   }
 
+  const staticGlowColor = isError ? colors.arrowError : isSelected ? colors.arrowHint : null
+
   return (
     <Group opacity={opacity} transform={animatedTransform}>
+      {/* Static neon glow for hint and error arrows */}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_BLOOM_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_BLOOM_ALPHA * 0.8 : NEON_BLOOM_ALPHA}
+        />
+      )}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_OUTER_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_OUTER_GLOW_ALPHA * 0.6 : NEON_OUTER_GLOW_ALPHA}
+        />
+      )}
+      {staticGlowColor && (
+        <Path
+          path={staticBodyPath}
+          color={staticGlowColor}
+          style="stroke"
+          strokeWidth={strokeWidth + NEON_INNER_EXTRA_WIDTH}
+          strokeCap="round"
+          strokeJoin="round"
+          opacity={isError ? NEON_INNER_GLOW_ALPHA * 0.5 : NEON_INNER_GLOW_ALPHA}
+        />
+      )}
       <Path
         path={staticBodyPath}
-        color={color}
+        color={staticGlowColor ? NEON_CORE_COLOR : color}
         style="stroke"
         strokeWidth={strokeWidth}
         strokeCap="round"
         strokeJoin="round"
       />
-      {staticHeadPath && <Path path={staticHeadPath} color={color} style="fill" />}
-      {isSelected && (
+      {staticHeadPath && (
         <Path
-          path={staticBodyPath}
-          color={colors.arrowHint}
-          style="stroke"
-          strokeWidth={strokeWidth + 8}
-          strokeCap="round"
-          strokeJoin="round"
-          opacity={HINT_GLOW_ALPHA}
+          path={staticHeadPath}
+          color={staticGlowColor ? NEON_CORE_COLOR : color}
+          style="fill"
         />
       )}
     </Group>

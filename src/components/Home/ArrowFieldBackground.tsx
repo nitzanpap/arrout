@@ -182,6 +182,17 @@ export function ArrowFieldBackground({ colors, ripple }: Props) {
         <Path path={head1} color={colors.arrowColor} style="fill" />
       </Group>
 
+      {/* Accent layer glow bloom */}
+      <Group opacity={LAYER_OPACITY[2] * 0.4}>
+        <Path
+          path={body2}
+          color={colors.accent}
+          style="stroke"
+          strokeWidth={STROKE_W * 4}
+          strokeCap="round"
+          strokeJoin="round"
+        />
+      </Group>
       <Group opacity={LAYER_OPACITY[2]}>
         <Path
           path={body2}
@@ -194,26 +205,47 @@ export function ArrowFieldBackground({ colors, ripple }: Props) {
         <Path path={head2} color={colors.accent} style="fill" />
       </Group>
 
+      {/* Ring bloom */}
       <Circle
         cx={ringCx}
         cy={ringCy}
         r={ringR}
         color={colors.accent}
         style="stroke"
+        strokeWidth={6}
+        opacity={useDerivedValue(() => ringAlpha.value * 0.3)}
+      />
+      <Circle
+        cx={ringCx}
+        cy={ringCy}
+        r={ringR}
+        color="#FFFFFF"
+        style="stroke"
         strokeWidth={1.5}
         opacity={ringAlpha}
       />
 
-      <Group opacity={burstOpacity}>
+      {/* Burst glow */}
+      <Group opacity={useDerivedValue(() => burstOpacity.value * 0.4)}>
         <Path
           path={burstBody}
           color={colors.accent}
+          style="stroke"
+          strokeWidth={STROKE_W * 4}
+          strokeCap="round"
+          strokeJoin="round"
+        />
+      </Group>
+      <Group opacity={burstOpacity}>
+        <Path
+          path={burstBody}
+          color="#FFFFFF"
           style="stroke"
           strokeWidth={STROKE_W * 1.5}
           strokeCap="round"
           strokeJoin="round"
         />
-        <Path path={burstHead} color={colors.accent} style="fill" />
+        <Path path={burstHead} color="#FFFFFF" style="fill" />
       </Group>
     </Canvas>
   )

@@ -28,9 +28,16 @@ export function TouchRipple({
   const oOpacity = useDerivedValue(() => outerOpacity.value)
   const oRadius = useDerivedValue(() => outerRadius.value)
 
+  const bloomOpacity = useDerivedValue(() => oOpacity.value * 0.2)
+  const bloomRadius = useDerivedValue(() => outerRadius.value + 12)
+
   return (
     <>
+      {/* Outer bloom — soft neon spill */}
+      <Circle cx={cx} cy={cy} r={bloomRadius} color={outerColor} opacity={bloomOpacity} />
+      {/* Mid ring */}
       <Circle cx={cx} cy={cy} r={oRadius} color={outerColor} opacity={oOpacity} />
+      {/* Inner core — brighter */}
       <Circle cx={cx} cy={cy} r={innerRadius} color={innerColor} opacity={iOpacity} />
     </>
   )

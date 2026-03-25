@@ -148,7 +148,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         pendingFinalState: null,
         track: partialTrack,
         maxProgress,
-        neonColor: null,
+        neonColor: '#FF4A6A',
       })
 
       set({
