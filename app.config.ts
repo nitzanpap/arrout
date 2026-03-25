@@ -1,9 +1,14 @@
 import type { ExpoConfig } from 'expo/config'
 
+const { version } = require('./package.json')
+
+const [major = 0, minor = 0, patch = 0] = version.split('.').map(Number)
+const versionCode = major * 10000 + minor * 100 + patch
+
 const config: ExpoConfig = {
   name: 'Arrout',
   slug: 'arrout',
-  version: '1.0.0',
+  version,
   scheme: 'arrout',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -16,10 +21,12 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.arrout.app',
+    buildNumber: String(versionCode),
   },
   android: {
     package: 'com.arrout.app',
     permissions: [],
+    versionCode,
     adaptiveIcon: {
       backgroundColor: '#0F1120',
       foregroundImage: './assets/android-icon-foreground.png',
