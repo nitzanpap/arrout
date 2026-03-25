@@ -177,6 +177,10 @@ Detailed design docs are in the [`docs/`](docs/) directory:
 - [Algorithm Design](docs/02-algorithm.md) — reverse construction, solver, generation strategy
 - [Architecture](docs/03-architecture.md) — tech stack, engine design, state management, rendering
 
+## Privacy Policy
+
+[Privacy Policy](https://nitzanpap.github.io/arrout/privacy-policy.html)
+
 ## License
 
 [GNU General Public License v3.0](LICENSE)
