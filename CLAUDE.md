@@ -9,21 +9,26 @@ Arrout is a puzzle game built with React Native (Expo). Players tap arrows on a 
 ## Commands
 
 ```bash
-bun install              # install dependencies
-expo start               # start dev server (press i/a/w for platform)
-expo start --ios         # iOS simulator
-expo start --android     # Android emulator
-expo start --web         # web browser
+bun install                    # install dependencies
+expo start                     # start dev server (press i/a/w for platform)
+expo start --ios               # iOS simulator
+expo start --android           # Android emulator
+expo start --web               # web browser
 
-bun test                 # run all tests
-bun test --watch         # watch mode
-bun test src/engine      # run engine tests only
-bun test src/generator   # run generator tests only
+bun test                       # run all tests
+bun test --watch               # watch mode
+bun test src/engine            # run engine tests only
+bun test src/generator         # run generator tests only
 
-biome check .            # lint
-biome check --write .    # lint + autofix
-biome format --write .   # format
-tsc --noEmit             # typecheck
+biome check .                  # lint
+biome check --write .          # lint + autofix
+biome format --write .         # format
+tsc --noEmit                   # typecheck
+
+bun run build:android          # production AAB (for Play Store)
+bun run build:android:preview  # preview APK (for testing)
+bun run build:ios              # production iOS build
+bun run build:ios:preview      # preview iOS build
 ```
 
 ## Architecture
