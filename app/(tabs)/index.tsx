@@ -106,6 +106,8 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '800',
     letterSpacing: -1,
+    alignSelf: 'stretch',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,

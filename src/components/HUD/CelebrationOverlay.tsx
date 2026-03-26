@@ -259,26 +259,25 @@ export function CelebrationOverlay({
           </Animated.View>
         )}
 
-        <Animated.View
-          entering={FadeInUp.duration(400).delay(500)}
-          style={[buttonAnimStyle, pulseStyle]}
-        >
-          <Pressable
-            style={[
-              styles.nextButton,
-              {
-                backgroundColor: colors.accent,
-                shadowColor: colors.accent,
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.6,
-                shadowRadius: 12,
-                elevation: 8,
-              },
-            ]}
-            onPress={handleNextPress}
-          >
-            <Text style={styles.nextButtonText}>Next Level</Text>
-          </Pressable>
+        <Animated.View entering={FadeInUp.duration(400).delay(500)}>
+          <Animated.View style={[buttonAnimStyle, pulseStyle]}>
+            <Pressable
+              style={[
+                styles.nextButton,
+                {
+                  backgroundColor: colors.accent,
+                  shadowColor: colors.accent,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.6,
+                  shadowRadius: 12,
+                  elevation: 8,
+                },
+              ]}
+              onPress={handleNextPress}
+            >
+              <Text style={styles.nextButtonText}>Next Level</Text>
+            </Pressable>
+          </Animated.View>
         </Animated.View>
       </View>
     </Animated.View>
