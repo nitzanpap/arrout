@@ -15,6 +15,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import { SoundManager, SoundName } from '../../audio'
+import { GlowText } from '../../components/ui/GlowText'
 import type { Difficulty } from '../../engine/types'
 import { useSettingsStore } from '../../store/settings.store'
 import type { ThemeColors } from '../../theme/colors'
@@ -224,20 +225,14 @@ export function CelebrationOverlay({
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.overlayCard }]}>
-        <Animated.Text
+        <GlowText
           entering={FadeInDown.duration(400).delay(100)}
-          style={[
-            styles.title,
-            {
-              color: '#FFFFFF',
-              textShadowColor: colors.accent,
-              textShadowRadius: 16,
-              textShadowOffset: { width: 0, height: 0 },
-            },
-          ]}
+          style={[styles.title, { color: '#FFFFFF' }]}
+          glowColor={colors.accent}
+          glowRadius={16}
         >
           Level Complete!
-        </Animated.Text>
+        </GlowText>
 
         <Animated.Text
           entering={FadeInDown.duration(400).delay(200)}
@@ -304,6 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     minWidth: 260,
+    overflow: 'visible',
   },
   title: {
     fontSize: 28,

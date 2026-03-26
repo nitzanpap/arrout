@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router'
 import { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { GlowText } from '../../src/components/ui/GlowText'
 import { difficultyForLevel } from '../../src/generator/difficulty'
 import { useProgressStore } from '../../src/store/progress.store'
 import { useThemeColors } from '../../src/theme/colors'
@@ -23,9 +24,6 @@ export default function HomeScreen() {
     () => ({
       logo: {
         color: '#FFFFFF',
-        textShadowColor: colors.accent,
-        textShadowRadius: 20,
-        textShadowOffset: { width: 0, height: 0 },
       },
       subtitle: { color: colors.textSecondary },
       levelNumber: { color: colors.textPrimary },
@@ -58,7 +56,9 @@ export default function HomeScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
-        <Text style={[styles.logo, dynamicStyles.logo]}>Arrout</Text>
+        <GlowText style={[styles.logo, dynamicStyles.logo]} glowColor={colors.accent}>
+          Arrout
+        </GlowText>
         <Text style={[styles.subtitle, dynamicStyles.subtitle]}>Slide the arrows</Text>
 
         <View style={styles.levelInfo}>
@@ -106,8 +106,6 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '800',
     letterSpacing: -1,
-    alignSelf: 'stretch',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
