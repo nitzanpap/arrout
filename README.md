@@ -93,6 +93,7 @@ The **engine** and **generator** are pure TypeScript with zero React/RN dependen
 - [Android Studio](https://developer.android.com/studio) — for the Android SDK and emulator (if you want to run on Android)
 - [Xcode](https://developer.apple.com/xcode/) — for the iOS simulator (macOS only)
 - [EAS CLI](https://docs.expo.dev/build/introduction/) — only needed if you want to build a standalone APK/IPA
+- [Vercel CLI](https://vercel.com/docs/cli) — optional, for deploying the web version
 
 ### Run in development
 
