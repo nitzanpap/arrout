@@ -17,6 +17,8 @@
     "build:android:preview": "./scripts/build-local.sh android",
     "build:ios": "./scripts/build-local.sh ios prod",
     "build:ios:preview": "./scripts/build-local.sh ios",
+    "build:web": "./scripts/build-local.sh web",
+    "build:web:preview": "./scripts/build-local.sh web --no-zip",
     "postinstall": "node node_modules/@shopify/react-native-skia/scripts/install-skia.mjs"
   },
   "dependencies": {
