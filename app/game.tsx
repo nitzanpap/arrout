@@ -151,7 +151,11 @@ export default function GameScreen() {
 
   const handleBack = useCallback(() => {
     SoundManager.play(SoundName.Tap)
-    router.back()
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/')
+    }
   }, [router])
 
   const handleUndo = useCallback(() => {
@@ -227,7 +231,16 @@ export default function GameScreen() {
         <Text style={[styles.errorText, dynamicStyles.errorText]}>
           {error ?? 'Failed to load level'}
         </Text>
-        <Pressable style={styles.retryButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back()
+            } else {
+              router.replace('/')
+            }
+          }}
+        >
           <Text style={[styles.retryText, dynamicStyles.retryText]}>Back</Text>
         </Pressable>
       </SafeAreaView>
