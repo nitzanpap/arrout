@@ -1,5 +1,5 @@
 import { Canvas, Circle, Group, Path, Skia } from '@shopify/react-native-skia'
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { StyleSheet, useWindowDimensions } from 'react-native'
 import {
   type SharedValue,
@@ -53,7 +53,7 @@ interface Props {
   readonly ripple: SharedValue<RippleEvent>
 }
 
-export function ArrowFieldBackground({ colors, ripple }: Props) {
+export const ArrowFieldBackground = memo(function ArrowFieldBackground({ colors, ripple }: Props) {
   const { width, height } = useWindowDimensions()
   const cols = Math.ceil(width / CELL) + 1
   const rows = Math.ceil(height / CELL) + 1
@@ -249,7 +249,7 @@ export function ArrowFieldBackground({ colors, ripple }: Props) {
       </Group>
     </Canvas>
   )
-}
+})
 
 function arrowPos(
   a: GhostArrow,

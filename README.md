@@ -23,6 +23,8 @@
 
 Grab the latest APK from the [Releases](https://github.com/nitzanpap/arrout/releases/latest) page and install it on any Android device — no Play Store needed.
 
+A web version is also available — play it directly in your browser at [arrout.vercel.app](https://arrout.vercel.app).
+
 ## Why This Exists 🤷
 
 Picture this: you're sitting in a bomb shelter during Iranian missile strikes on Israel 🚀, the wifi is basically decorative 📶, and every offline puzzle game on your phone wants you to watch a 30-second ad after each level 📺. Somewhere between the third siren, the interceptions going BOOM! outside, and the fifteenth unskippable ad, I thought: "I'm a developer. I can fix at least one of these problems!" 🧑‍💻
@@ -91,6 +93,7 @@ The **engine** and **generator** are pure TypeScript with zero React/RN dependen
 - [Android Studio](https://developer.android.com/studio) — for the Android SDK and emulator (if you want to run on Android)
 - [Xcode](https://developer.apple.com/xcode/) — for the iOS simulator (macOS only)
 - [EAS CLI](https://docs.expo.dev/build/introduction/) — only needed if you want to build a standalone APK/IPA
+- [Vercel CLI](https://vercel.com/docs/cli) — optional, for deploying the web version
 
 ### Run in development
 
@@ -116,9 +119,13 @@ bun run build:android          # production AAB (for Play Store)
 bun run build:android:preview  # preview APK (for testing)
 bun run build:ios              # production iOS build
 bun run build:ios:preview      # preview iOS build
+bun run build:web              # web static export (zipped)
+bun run build:web:preview      # web static export (dist/ kept for local preview)
 ```
 
-All builds run locally via EAS. Android production builds output an AAB to `builds/`, preview builds output an APK.
+Android and iOS builds run locally via EAS. Android production builds output an AAB to `builds/`, preview builds output an APK.
+
+Web builds use `expo export` to produce a static site. The default `build:web` zips the output to `builds/`. Use `build:web:preview` to keep the `dist/` directory for local testing with `npx serve dist`.
 
 ### Install a preview APK on your phone
 

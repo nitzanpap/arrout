@@ -53,16 +53,18 @@ export default function GameScreen() {
 
   const recordComplete = useProgressStore((s) => s.recordLevelComplete)
 
-  const { width: screenWidth } = useWindowDimensions()
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const padding = 20
   const playableWidth = screenWidth - padding * 2
+  // Reserve space for header (~120px) and bottom padding
+  const playableHeight = screenHeight - 160
 
   const cellSize = useMemo(() => {
     if (!gridState) return 0
     const maxW = playableWidth / gridState.width
-    const maxH = playableWidth / gridState.height
+    const maxH = playableHeight / gridState.height
     return Math.floor(Math.min(maxW, maxH))
-  }, [gridState, playableWidth])
+  }, [gridState, playableWidth, playableHeight])
 
   const gridHeight = gridState ? cellSize * gridState.height : 0
 
@@ -149,7 +151,11 @@ export default function GameScreen() {
 
   const handleBack = useCallback(() => {
     SoundManager.play(SoundName.Tap)
-    router.back()
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/')
+    }
   }, [router])
 
   const handleUndo = useCallback(() => {
@@ -225,7 +231,16 @@ export default function GameScreen() {
         <Text style={[styles.errorText, dynamicStyles.errorText]}>
           {error ?? 'Failed to load level'}
         </Text>
-        <Pressable style={styles.retryButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back()
+            } else {
+              router.replace('/')
+            }
+          }}
+        >
           <Text style={[styles.retryText, dynamicStyles.retryText]}>Back</Text>
         </Pressable>
       </SafeAreaView>

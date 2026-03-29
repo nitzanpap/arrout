@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons'
 import * as Haptics from 'expo-haptics'
 import { Tabs } from 'expo-router'
-import { useCallback, useRef } from 'react'
-import { type GestureResponderEvent, StyleSheet, View } from 'react-native'
+import { useCallback, useRef, useState } from 'react'
+import { type GestureResponderEvent, Platform, StyleSheet, View } from 'react-native'
 import { useSharedValue } from 'react-native-reanimated'
 import {
   ArrowFieldBackground,
@@ -19,6 +19,8 @@ const TAB_ICONS: Record<string, IoniconsName> = {
   Settings: 'settings-sharp',
 }
 
+const TAB_ROUTE_NAMES = ['index', 'challenge', 'collection', 'settings']
+
 function TabIcon({
   label,
   focused,
@@ -34,6 +36,12 @@ function TabIcon({
 
 export default function TabLayout() {
   const colors = useThemeColors()
+
+  const [focusedIndex, setFocusedIndex] = useState(0)
+  const focusedRoute = useCallback(
+    (name: string) => TAB_ROUTE_NAMES[focusedIndex] === name,
+    [focusedIndex]
+  )
 
   const ripple = useSharedValue<RippleEvent>({ x: 0, y: 0, id: 0 })
   const rippleIdRef = useRef(0)
@@ -55,9 +63,20 @@ export default function TabLayout() {
     <View style={[styles.root, { backgroundColor: colors.background }]} onTouchStart={handleTouch}>
       <ArrowFieldBackground colors={colors} ripple={ripple} />
       <Tabs
-        screenOptions={{
+        screenListeners={{
+          state: (e) => {
+            if (Platform.OS === 'web') {
+              const state = (e as { data?: { state?: { index?: number } } }).data?.state
+              if (state?.index != null) setFocusedIndex(state.index)
+            }
+          },
+        }}
+        screenOptions={({ route }) => ({
           headerShown: false,
-          sceneStyle: styles.transparent,
+          sceneStyle:
+            Platform.OS === 'web'
+              ? [styles.transparent, focusedRoute(route.name) ? undefined : styles.hidden]
+              : styles.transparent,
           tabBarStyle: {
             backgroundColor: colors.headerBand,
             borderTopColor: colors.gridLine,
@@ -69,7 +88,7 @@ export default function TabLayout() {
             fontSize: 11,
             fontWeight: '600',
           },
-        }}
+        })}
       >
         <Tabs.Screen
           name="index"
@@ -116,5 +135,8 @@ const styles = StyleSheet.create({
   },
   transparent: {
     backgroundColor: 'transparent',
+  },
+  hidden: {
+    display: 'none',
   },
 })
